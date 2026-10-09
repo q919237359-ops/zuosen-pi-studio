@@ -7,15 +7,24 @@
   <meta name="description" content="快速制作专业形式发票。实时预览、自动计算、Excel 导出和 PDF 打印，资料保存在本机。">
   <title>ZUOSEN · 国内合同与外贸 PI</title>
   <link rel="icon" href="./assets/zuosen-brand-square.jpg" type="image/jpeg">
-  <link rel="stylesheet" href="./styles.css?v=20261009-2">
-  <link rel="stylesheet" href="./mobile.css?v=20261009-2">
-  <link rel="stylesheet" href="./template.css?v=20261009-2">
-  <link rel="stylesheet" href="./domestic.css?v=20261009-2">
-  <link rel="stylesheet" href="./studio-ui.css?v=20261009-2">
-  <script defer src="./pi-utils.js?v=20261009-2"></script>
-  <script defer src="./domestic-template.js?v=20261009-2"></script>
-  <script defer src="./pi-pdf.js?v=20261009-2"></script>
-  <script defer src="./app.js?v=20261009-2"></script>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="ZUOSEN PI">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="stylesheet" href="./install.css?v=20261009-3">
+  <link rel="stylesheet" href="./styles.css?v=20261009-3">
+  <link rel="stylesheet" href="./mobile.css?v=20261009-3">
+  <link rel="stylesheet" href="./template.css?v=20261009-3">
+  <link rel="stylesheet" href="./domestic.css?v=20261009-3">
+  <link rel="stylesheet" href="./studio-ui.css?v=20261009-3">
+  <script defer src="./pi-utils.js?v=20261009-3"></script>
+  <script defer src="./domestic-template.js?v=20261009-3"></script>
+  <script defer src="./pi-pdf.js?v=20261009-3"></script>
+  <script defer src="./app.js?v=20261009-3"></script>
+  <script defer src="./offline.js?v=20261009-3"></script>
+  <script defer src="./install.js?v=20261009-3"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">跳到主要内容</a>
@@ -37,10 +46,12 @@
   </aside>
 
   <div class="workspace">
-    <header class="topbar no-print"><div class="breadcrumb">工作空间 <span>/</span> <strong id="breadcrumb-current">制作 PI</strong></div><div class="topbar-right"><span id="save-status" class="save-status" role="status"><span class="status-dot"></span>准备就绪</span><button class="button small ghost" id="backup-all">↓ 备份全部资料</button><button class="button small ghost" id="restore-all">↥ 恢复备份</button></div></header>
+    <header class="topbar no-print"><div class="breadcrumb">工作空间 <span>/</span> <strong id="breadcrumb-current">制作 PI</strong></div><div class="topbar-right"><span id="save-status" class="save-status" role="status"><span class="status-dot"></span>准备就绪</span><button class="button small ghost" type="button" data-install-app><span data-install-label>添加到手机桌面</span></button><button class="button small ghost" id="backup-all">↓ 备份全部资料</button><button class="button small ghost" id="restore-all">↥ 恢复备份</button></div></header>
     <main id="main">
       <section id="view-editor" class="view active">
         <div class="page-heading no-print"><div><div class="eyebrow">ZUOSEN · INVOICE WORKSPACE</div><h1>把订单，做得更简单<span>.</span></h1><p>国内供货合同与外贸 PI，一个工作台完成。</p></div><button class="button secondary" id="new-invoice">＋ 新建单据</button></div>
+        <aside class="install-card no-print" id="install-card" aria-label="手机桌面入口"><img width="36" height="36" src="./assets/pwa-icon-192.png" alt=""><div><strong>添加到手机桌面</strong><small>下次点 ZUOSEN 图标，直接开单</small></div><button class="button secondary" type="button" data-install-app aria-label="添加到手机桌面">添加</button></aside>
+        <p class="offline-readiness no-print" id="offline-readiness" role="status" aria-live="polite" hidden></p>
         <section class="document-context no-print" aria-label="单据类型与开单抬头">
           <div class="market-switch" role="group" aria-label="选择国内或外贸"><button type="button" class="market-option" data-market="domestic" aria-pressed="false">国内合同<span>人民币 · 中文</span></button><button type="button" class="market-option" data-market="international" aria-pressed="true">外贸 PI<span>外币 · 英文</span></button></div>
           <div class="company-context"><div class="company-select-row"><label for="company-profile-select">开单抬头<select id="company-profile-select" name="companyProfile"></select></label><button type="button" class="text-button" id="manage-company-profiles">管理抬头与公章 <span aria-hidden="true">↗</span></button></div><p class="company-context-note" id="company-context-note">抬头与公章对应保存，每份单据都可单独调整。</p></div>
@@ -137,6 +148,7 @@
   </nav>
 
   <dialog id="mobile-sheet" class="bottom-sheet no-print" aria-labelledby="mobile-sheet-title"><div class="sheet-heading"><div><h2 id="mobile-sheet-title">单据操作</h2><p>你的资料仅保存在此浏览器</p></div><button class="icon-button" id="close-mobile-sheet" aria-label="关闭操作菜单">×</button></div><div class="sheet-action-list">
+    <button class="sheet-action" type="button" data-install-app><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 21H5V3h10v5M9 18h2M19 10v8M15 14h8"/></svg><div><strong data-install-label>添加到手机桌面</strong><small>使用 ZUOSEN 图标，从桌面直接开单</small></div><span>›</span></button>
     <button class="sheet-action" data-mobile-action="local"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 15v6h16v-6"/></svg><div><strong>保存到本地</strong><small>直接下载含公章的 A4 PDF 文件</small></div><span>›</span></button>
     <button class="sheet-action" data-mobile-action="print"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H3V9h18v9h-3M6 14h12v7H6zM17 11h1"/></svg><div><strong>打印 / 保存 PDF</strong><small>系统打印中选择「另存为 PDF」</small></div><span>›</span></button>
     <button class="sheet-action" data-mobile-action="share"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3m-4 4 4-4 4 4M5 11v10h14V11"/></svg><div><strong>分享 Excel 文件</strong><small>通过手机系统分享发送单据</small></div><span>›</span></button>
@@ -153,6 +165,7 @@
 
   <dialog id="edit-dialog" class="edit-dialog no-print" aria-labelledby="dialog-title"><form id="dialog-form"><div class="dialog-heading"><h2 id="dialog-title">编辑资料</h2><button class="icon-button" type="button" id="close-dialog" aria-label="关闭">×</button></div><div id="dialog-fields" class="form-grid"></div><div class="dialog-actions"><button class="button secondary" type="button" id="cancel-dialog">取消</button><button class="button primary" type="submit">保存资料</button></div></form></dialog>
   <dialog id="confirm-dialog" class="confirm-dialog no-print" aria-labelledby="confirm-title" aria-describedby="confirm-message"><h2 id="confirm-title"></h2><p id="confirm-message"></p><div class="dialog-actions"><button class="button secondary" id="confirm-cancel">取消</button><button class="button primary" id="confirm-ok">确定</button></div></dialog>
+  <dialog id="install-help" class="no-print" aria-labelledby="install-title" aria-describedby="install-description"><div class="install-heading"><img width="52" height="52" src="./assets/pwa-icon-192.png" alt="ZUOSEN"><div><h2 id="install-title">添加到手机桌面</h2><small>ZUOSEN PI · 开单工作台</small></div><button type="button" class="icon-button" id="install-close" aria-label="关闭安装说明">×</button></div><p id="install-description"></p><ol id="install-steps"></ol><label class="install-link-label" for="install-url">网站链接<input id="install-url" name="installURL" type="url" readonly autocomplete="off" spellcheck="false"></label><div class="install-actions"><button class="button primary" id="install-native" type="button" hidden>打开安装窗口</button><button class="button secondary" id="install-copy" type="button">复制网站链接</button></div><p id="install-copy-status" role="status" aria-live="polite"></p><p id="install-offline-state" role="status" aria-live="polite"></p></dialog>
   <div id="toast" class="toast no-print" role="status" aria-live="polite" hidden></div>
   <input type="file" id="json-file" accept=".json,application/json" hidden>
 </body>

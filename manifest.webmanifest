@@ -1,0 +1,18 @@
+{
+  "id": "./",
+  "name": "ZUOSEN 开单工作台",
+  "short_name": "ZUOSEN PI",
+  "description": "国内供货合同与外贸 PI，手机快速开单。",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f6f0",
+  "theme_color": "#173c4c",
+  "prefer_related_applications": false,
+  "categories": ["business", "productivity"],
+  "icons": [
+    {"src": "./assets/pwa-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "./assets/pwa-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"}
+  ]
+}
