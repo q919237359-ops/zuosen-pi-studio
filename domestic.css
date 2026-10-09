@@ -1,0 +1,77 @@
+/* Chinese supply contract. Scoped so the original international PI stays intact. */
+.domestic-invoice{color:#000;font-family:"Songti SC",SimSun,"Noto Serif CJK SC",serif;font-size:14.3px;line-height:1.23}
+.domestic-invoice .domestic-table{border:0;font-size:inherit;line-height:inherit;table-layout:fixed}
+.domestic-invoice .domestic-table td,.domestic-invoice .domestic-table th{border:0;padding:0;vertical-align:top;font-weight:400;white-space:pre-line;overflow-wrap:anywhere}
+.domestic-invoice .domestic-table .source-heading{height:auto;padding:0 0 2px}
+.domestic-invoice .domestic-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:22px;min-height:48px;margin-bottom:3px}
+.domestic-invoice .domestic-heading strong{font-family:"Songti SC",SimSun,serif;font-size:25.2px;font-weight:700;line-height:1.22;text-align:left;padding-top:1px;flex:1;white-space:normal;overflow-wrap:anywhere}
+.domestic-invoice .domestic-heading.domestic-no-logo{justify-content:center}
+.domestic-invoice .domestic-no-logo strong{text-align:center}
+.domestic-invoice .domestic-logo{width:238px;height:49px;object-fit:contain;flex-shrink:0}
+.domestic-invoice .domestic-company-address,.domestic-invoice .domestic-company-email{text-align:center;line-height:1.3;font-size:13.1px;min-height:19px}
+.domestic-invoice .domestic-company-email{font-family:Arial,"Songti SC",SimSun,serif;font-size:12.9px}
+.domestic-invoice .domestic-table .source-title{font-size:26px;font-weight:700;text-align:center;height:auto;padding:0 0 2px;line-height:1.3}
+.domestic-invoice .domestic-contract-number{text-align:right;height:21px;padding-right:59px!important;font-size:13.4px;font-family:Arial,"Songti SC",SimSun,serif}
+.domestic-invoice .domestic-parties-cell{padding:0 2px 5px!important}
+.domestic-invoice .domestic-parties{display:grid;grid-template-columns:46% 54%;gap:0}
+.domestic-invoice .domestic-parties>div{min-width:0;padding-right:15px}
+.domestic-invoice .domestic-party-line{display:grid;grid-template-columns:70px minmax(0,1fr);align-items:start;min-height:20px;line-height:1.3}
+.domestic-invoice .domestic-party-line>span{white-space:nowrap}
+.domestic-invoice .domestic-party-line>div{white-space:pre-line;overflow-wrap:anywhere;min-height:18px}
+.domestic-invoice .domestic-party-address{margin-top:4px;min-height:34px;font-size:13.3px}
+.domestic-invoice .domestic-currency{text-align:right;height:19px;padding-right:122px!important;font-size:12.4px}
+.domestic-invoice .domestic-column-head{height:22px}
+.domestic-invoice .domestic-column-head th,.domestic-invoice .domestic-item-row td,.domestic-invoice .domestic-total td{border:1px solid #000;padding:2px 3px;vertical-align:middle;text-align:center;line-height:1.2;font-size:14px}
+.domestic-invoice .domestic-column-head th{font-size:14.4px;height:22px;font-family:"Songti SC",SimSun,serif}
+.domestic-invoice .domestic-item-row td{height:23px;min-height:23px}
+.domestic-invoice .domestic-model,.domestic-invoice .domestic-total-amount{font-family:Arial,"Songti SC",SimSun,serif}
+.domestic-invoice .domestic-item-detail{font-family:"Songti SC",SimSun,serif;font-size:11.3px;line-height:1.28;white-space:pre-line;margin-top:2px}
+.domestic-invoice .domestic-blank-row td{height:23px}
+.domestic-invoice .domestic-total td{height:23px}
+.domestic-invoice .domestic-total-amount{white-space:nowrap!important;font-variant-numeric:tabular-nums}
+.domestic-invoice .domestic-capital td{font-size:12.5px;line-height:1.4;padding:3px 3px 1px;border:1px solid #000;border-top:0}
+.domestic-invoice .domestic-table .domestic-terms-heading{font-size:15px;padding:2px 3px 0;line-height:1.25}
+.domestic-invoice .domestic-term-row td{padding:1px 3px;line-height:1.32;font-size:13.8px}
+.domestic-invoice .domestic-term-row div,.domestic-invoice .domestic-note-row div{white-space:pre-line;overflow-wrap:anywhere}
+.domestic-invoice .domestic-note-row td{font-size:13px;line-height:1.35;padding:3px}
+.domestic-invoice .domestic-signatures-cell{padding:9px 3px 0!important}
+.domestic-invoice .domestic-signatures{display:grid;grid-template-columns:44% 56%;gap:0;min-height:77px}
+.domestic-invoice .domestic-signatures>div{min-width:0;padding-right:12px}
+.domestic-invoice .domestic-signatures .domestic-party-line{grid-template-columns:59px minmax(0,1fr);min-height:20px;font-size:13.8px;line-height:1.35}
+.domestic-invoice .domestic-seller-signature{position:relative}
+.domestic-invoice .domestic-signature-text{position:relative;z-index:1}
+.domestic-invoice .domestic-company-seal{position:absolute;top:18px;left:27px;width:153px;height:153px;object-fit:contain;z-index:0;pointer-events:none}
+.domestic-invoice .domestic-signing-place{font-size:12.4px;margin-top:2px;margin-left:306px;min-height:16px}
+.domestic-invoice .domestic-greeting{padding-left:70px;line-height:1.35;font-size:13.6px;position:relative;z-index:1;min-height:45px}
+.domestic-invoice .domestic-bank{padding:0 3px!important;font-size:13.7px;line-height:1.38;position:relative;z-index:1}
+.domestic-invoice .domestic-bank>div{min-height:20px;white-space:pre-line}
+@media print{
+  .domestic-invoice{font-family:"Songti SC",SimSun,"Noto Serif CJK SC",serif!important;font-size:15.77px!important;line-height:1.23!important}
+  .domestic-invoice .domestic-table{width:100%;border:0;font-size:inherit}
+  .domestic-invoice .domestic-table tr{break-inside:avoid;page-break-inside:avoid}
+  .domestic-invoice .domestic-heading{min-height:53px;gap:24px;margin-bottom:3px}
+  .domestic-invoice .domestic-heading strong{font-size:27.8px}
+  .domestic-invoice .domestic-logo{width:262.5px;height:54px}
+  .domestic-invoice .domestic-company-address{font-size:14.45px;min-height:21px}
+  .domestic-invoice .domestic-company-email{font-size:14.23px;min-height:21px}
+  .domestic-invoice .domestic-table .source-title{font-size:28.7px;height:auto;padding-bottom:2px}
+  .domestic-invoice .domestic-contract-number{height:23px;font-size:14.8px;padding-right:65px!important}
+  .domestic-invoice .domestic-party-line{grid-template-columns:77px minmax(0,1fr);min-height:22px}
+  .domestic-invoice .domestic-party-address{min-height:37.5px;font-size:14.7px}
+  .domestic-invoice .domestic-currency{height:21px;font-size:13.7px;padding-right:134px!important}
+  .domestic-invoice .domestic-column-head th{height:24.3px;font-size:15.9px}
+  .domestic-invoice .domestic-item-row td,.domestic-invoice .domestic-total td{height:25.4px;font-size:15.45px}
+  .domestic-invoice .domestic-item-detail{font-size:12.45px}
+  .domestic-invoice .domestic-capital td{font-size:13.8px}
+  .domestic-invoice .domestic-table .domestic-terms-heading{font-size:16.55px}
+  .domestic-invoice .domestic-term-row td{font-size:15.23px}
+  .domestic-invoice .domestic-note-row td{font-size:14.35px}
+  .domestic-invoice .domestic-signatures-cell{padding-top:10px!important}
+  .domestic-invoice .domestic-signatures{min-height:85px}
+  .domestic-invoice .domestic-signatures .domestic-party-line{grid-template-columns:65px minmax(0,1fr);min-height:22px;font-size:15.23px}
+  .domestic-invoice .domestic-company-seal{top:20px;left:30px;width:169px;height:169px}
+  .domestic-invoice .domestic-signing-place{font-size:13.7px;margin-left:338px}
+  .domestic-invoice .domestic-greeting{padding-left:77px;font-size:15px;min-height:49.5px}
+  .domestic-invoice .domestic-bank{font-size:15.1px}
+  .domestic-invoice .domestic-bank>div{min-height:22px}
+}

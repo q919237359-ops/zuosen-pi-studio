@@ -51,11 +51,12 @@
     document.body.append(stage);
     try {
       const rows = [...sourceTable.tBodies[0].rows];
-      const repeated = rows.filter(row => row.querySelector('.source-heading,.source-title') || row.classList.contains('source-column-head'));
+      const repeated = rows.filter(row => row.querySelector('.source-heading,.source-title,.domestic-contract-number') || row.classList.contains('source-column-head'));
       const pages = [];
       function newPage(repeatHeader) {
         const paper = document.createElement('div');
-        paper.className = 'invoice-paper';
+        paper.className = source.className;
+        paper.lang = source.lang;
         paper.style.cssText = `display:block!important;width:${WIDTH}px!important;height:${HEIGHT}px!important;min-height:0!important;max-height:none!important;transform:none!important;padding:${TOP}px 19.2px ${BOTTOM}px!important;margin:0!important;box-shadow:none!important;overflow:hidden!important;background:#fff!important`;
         const table = sourceTable.cloneNode(false);
         const columns = sourceTable.querySelector('colgroup');
