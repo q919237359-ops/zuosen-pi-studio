@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#172b43">
+  <meta name="description" content="快速制作专业形式发票。实时预览、自动计算、Excel 导出和 PDF 打印，资料保存在本机。">
+  <title>PI Studio · 快速制作形式发票</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./mobile.css">
+  <link rel="stylesheet" href="./template.css">
+  <script defer src="./pi-utils.js"></script>
+  <script defer src="./pi-pdf.js"></script>
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要内容</a>
+  <header class="mobile-header mobile-only no-print"><div class="mobile-header-brand"><span class="mobile-brand-mark">pi</span><div><strong id="mobile-header-title">PI Studio</strong><span id="mobile-header-status">草稿自动保存在本机</span></div></div><button class="mobile-more-button" id="mobile-more" aria-label="更多操作" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></button></header>
+  <aside class="sidebar no-print">
+    <a class="brand" href="#editor" aria-label="PI Studio 首页"><span class="brand-icon">pi<span>↗</span></span><span>PI Studio<small>让每一份成交更简单</small></span></a>
+    <div class="nav-caption">工作空间</div>
+    <nav aria-label="主要导航">
+      <button class="nav-item active" data-view="editor"><span class="nav-icon">▤</span>制作 PI<span class="nav-arrow">↗</span></button>
+      <button class="nav-item" data-view="customers"><span class="nav-icon">♧</span>客户资料<span class="nav-count" id="customer-count">0</span></button>
+      <button class="nav-item" data-view="products"><span class="nav-icon">▦</span>产品资料<span class="nav-count" id="product-count">0</span></button>
+      <button class="nav-item" data-view="history"><span class="nav-icon">◷</span>历史单据<span class="nav-count" id="history-count">0</span></button>
+    </nav>
+    <div class="sidebar-bottom">
+      <button class="nav-item" data-view="settings"><span class="nav-icon">⚙</span>公司与收款设置</button>
+      <div class="local-note"><span class="status-dot"></span><div>资料保存在此浏览器<small>导出备份，换设备也能继续</small></div></div>
+      <div class="sidebar-foot">YOUR NEXT DEAL, READY.</div>
+    </div>
+  </aside>
+
+  <div class="workspace">
+    <header class="topbar no-print"><div class="breadcrumb">工作空间 <span>/</span> <strong id="breadcrumb-current">制作 PI</strong></div><div class="topbar-right"><span id="save-status" class="save-status" role="status"><span class="status-dot"></span>准备就绪</span><a class="button small ghost" href="./mobile-demo.html" target="_blank" rel="noopener" style="text-decoration:none">手机演示</a><button class="button small ghost" id="backup-all">↓ 备份全部资料</button><button class="button small ghost" id="restore-all">↥ 恢复备份</button></div></header>
+    <main id="main">
+      <section id="view-editor" class="view active">
+        <div class="page-heading no-print"><div><div class="eyebrow">PROFORMA INVOICE WORKSPACE</div><h1>下一笔订单，从这里开始<span>.</span></h1><p>填入订单，专业 PI 即刻就绪。</p></div><button class="button secondary" id="new-invoice">＋ 新建 PI</button></div>
+        <div class="action-bar no-print"><div class="document-name"><span class="doc-badge">PI</span><div><strong id="document-number">新建形式发票</strong><span id="document-subtitle">未命名客户 · USD</span></div></div><div class="action-buttons"><button class="button secondary" id="save-invoice">保存到历史</button><button class="button secondary" id="export-json" title="保存当前 PI 数据，可在其他设备导入">↓ 单据备份</button><button class="button secondary" id="export-excel">↓ Excel</button><button class="button secondary" id="print-invoice"><span>▧</span> 打印</button><button class="button primary" id="save-local" title="直接下载含公章的 A4 PDF 文件">↓ 保存到本地</button></div></div>
+        <div class="editor-layout">
+          <section class="editor-panel no-print" aria-label="PI 编辑表单">
+            <div class="editor-tabs" role="tablist" aria-label="编辑步骤">
+              <button class="editor-tab active" id="tab-order" role="tab" aria-selected="true" aria-controls="panel-order" data-panel="order"><span>01</span> 订单信息</button>
+              <button class="editor-tab" id="tab-items" role="tab" aria-selected="false" aria-controls="panel-items" data-panel="items"><span>02</span> 产品明细</button>
+              <button class="editor-tab" id="tab-terms" role="tab" aria-selected="false" aria-controls="panel-terms" data-panel="terms"><span>03</span> 金额与条款</button>
+              <button class="editor-tab mobile-only" id="tab-preview" role="tab" aria-selected="false" aria-controls="invoice-preview-panel" data-panel="preview"><span>04</span> 预览</button>
+            </div>
+
+            <div id="panel-order" class="editor-content tab-panel active" role="tabpanel" aria-labelledby="tab-order">
+              <div class="section-title"><div><h2>订单信息</h2><p>给这份订单一个清晰的开始。</p></div><span class="subtle-tag">必填项标有 *</span></div>
+              <div class="form-grid order-meta-grid">
+                <label class="meta-number">PI 编号 <span class="required">*</span><input data-field="meta.number" autocomplete="off" placeholder="例：PI20261009-001" maxlength="100"></label>
+                <label>开单日期 <span class="required">*</span><input data-field="meta.date" type="date"></label>
+                <label>币种<select data-field="meta.currency"><option value="USD">USD · 美元</option><option value="EUR">EUR · 欧元</option><option value="CNY">CNY · 人民币</option><option value="GBP">GBP · 英镑</option></select></label>
+                <details class="meta-extra-details" id="meta-extra-details" open><summary class="mobile-only">有效期 <span>选填</span></summary><label>有效期至<input data-field="meta.validUntil" type="date"></label></details>
+              </div>
+              <div class="section-divider"></div>
+              <div class="section-title compact"><div><h2>买方资料</h2><p>从客户库选择，或直接填写。</p></div><button class="text-button" id="save-customer">＋ 存入客户库</button></div>
+              <label class="full-label">常用客户<select id="customer-select"><option value="">选择已保存客户…</option></select></label>
+              <div class="form-grid">
+                <label class="span-2">公司名称 <span class="required">*</span><input data-field="buyer.name" placeholder="Buyer's company name" autocomplete="organization" maxlength="200"></label>
+                <details class="buyer-details span-2" id="buyer-details" open><summary class="mobile-only">地址与联系方式 <span>选填</span></summary><div class="form-grid"><label class="span-2">公司地址<textarea data-field="buyer.address" placeholder="Street, city, postal code, country" rows="2" maxlength="2000"></textarea></label>
+                <label>联系人<input data-field="buyer.contact" placeholder="Contact person" maxlength="200"></label>
+                <label>电话<input data-field="buyer.phone" type="tel" placeholder="+1 …" maxlength="80"></label>
+                <label class="span-2">邮箱<input data-field="buyer.email" type="email" placeholder="name@company.com" maxlength="254"></label></div></details>
+              </div>
+              <div class="info-note"><span>↗</span><div>第一次使用？<button class="inline-button" data-view="settings">设置公司与收款资料</button>，之后开单自动带入。</div></div>
+              <div class="panel-footer"><button class="text-button" id="load-demo">填入图册产品示例</button><button class="button primary" data-next="items">下一步：产品明细 →</button></div>
+            </div>
+
+            <div id="panel-items" class="editor-content tab-panel" role="tabpanel" aria-labelledby="tab-items" hidden>
+              <div class="section-title"><div><h2>产品明细</h2><p>数量 × 单价，金额自动计算。</p></div><button class="button small secondary" id="add-item">＋ 添加产品</button></div>
+              <label class="full-label">从产品库添加<select id="product-select"><option value="">选择已保存产品…</option></select></label>
+              <div id="items-editor"></div>
+              <button class="add-item-area" id="add-item-bottom">＋ 再添加一项产品</button>
+              <div class="items-summary"><span>产品小计 <small id="items-count">0 项</small></span><strong id="items-subtotal">USD 0.00</strong></div>
+              <div class="panel-footer"><button class="button ghost" data-next="order">← 订单信息</button><button class="button primary" data-next="terms">下一步：金额与条款 →</button></div>
+            </div>
+
+            <div id="panel-terms" class="editor-content tab-panel" role="tabpanel" aria-labelledby="tab-terms" hidden>
+              <div class="section-title"><div><h2>金额与条款</h2><p>确认费用、交付与付款约定。</p></div></div>
+              <div class="form-grid">
+                <label>运费<input data-field="adjustments.shipping" type="number" min="0" step="0.01" inputmode="decimal"></label>
+                <label>其他费用<input data-field="adjustments.other" type="number" min="0" step="0.01" inputmode="decimal"></label>
+                <label>折扣金额<input data-field="adjustments.discount" type="number" min="0" step="0.01" inputmode="decimal"></label>
+                <label>订金比例（%）<input data-field="adjustments.depositPercent" type="number" min="0" max="100" step="0.01" inputmode="decimal"></label>
+              </div>
+              <div class="total-card"><div><span>订单总额</span><strong id="total-display">USD 0.00</strong></div><div class="deposit-breakdown"><span>订金 <b id="deposit-display">0.00</b></span><span>尾款 <b id="balance-display">0.00</b></span></div></div>
+              <div class="form-grid">
+                <label>贸易条款<select data-field="meta.incoterm"><option value="">请选择</option><option>EXW</option><option>FCA</option><option>FOB</option><option>CFR</option><option>CIF</option><option>CPT</option><option>CIP</option><option>DAP</option><option>DPU</option><option>DDP</option><option>FAS</option></select></label>
+                <label>指定地点 / 港口<input data-field="meta.port" placeholder="例：DAP Berlin, Germany" maxlength="200"></label>
+                <label class="span-2">交货期<input data-field="meta.leadTime" placeholder="例：Within 25 days after receipt of deposit" maxlength="200"></label>
+                <label class="span-2">付款条款<textarea data-field="meta.paymentTerms" rows="3" placeholder="例：30% T/T deposit, 70% balance before shipment." maxlength="2000"></textarea></label>
+                <label class="span-2">备注 / 其他约定<textarea data-field="notes" rows="3" placeholder="Packaging, warranty, shipping instructions…" maxlength="8000"></textarea></label>
+              </div>
+              <details class="bank-details"><summary>本单卖方与收款资料 <span>点击展开编辑</span></summary><div id="invoice-seller-fields" class="form-grid"></div><div id="invoice-bank-fields" class="form-grid"></div></details>
+              <div class="panel-footer"><button class="button ghost" data-next="items">← 产品明细</button><button class="button primary" id="finish-invoice">检查并打印 PI →</button></div>
+            </div>
+            <div id="validation" class="validation" role="alert" hidden></div>
+          </section>
+
+          <section class="preview-panel" id="invoice-preview-panel" aria-label="PI 实时预览" tabindex="0">
+            <div class="preview-toolbar no-print"><div><span class="live-dot"></span><strong>实时预览</strong><span class="preview-size">A4 · 原表模板 · 含公章</span></div><div class="preview-tools"><button class="text-button mobile-only" id="preview-zoom" aria-pressed="false">100% 阅读</button><button class="text-button" id="expand-preview">⤢ 放大</button></div></div>
+            <div class="mobile-preview-hint mobile-only no-print" id="preview-hint">点「100% 阅读」查看细节，左右滑动单据。</div>
+            <div class="preview-stage" id="preview-stage"><div id="invoice-viewport"><article id="invoice" class="invoice-paper" lang="en" aria-label="Proforma invoice"></article></div></div>
+            <div class="preview-foot no-print"><span>✓ 编辑即更新</span><span>打印时自动隐藏操作界面</span></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="view-customers" class="view no-print" hidden></section>
+      <section id="view-products" class="view no-print" hidden></section>
+      <section id="view-history" class="view no-print" hidden></section>
+      <section id="view-settings" class="view no-print" hidden></section>
+      <footer class="workspace-footer no-print"><span>PI Studio</span><span>让重复的文书工作，留给工具。</span><button class="inline-button" id="import-invoice">导入单据 JSON</button></footer>
+    </main>
+  </div>
+
+  <div class="mobile-action-dock mobile-only no-print" id="mobile-dock"><div class="mobile-dock-total"><small>订单总额</small><strong id="mobile-total">USD 0.00</strong></div><button class="button secondary" id="mobile-preview-btn">预览</button><button class="button primary" id="mobile-next">下一步 →</button></div>
+  <nav class="mobile-nav mobile-only no-print" aria-label="手机工作区导航">
+    <button class="mobile-nav-item active" data-view="editor"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H5a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9zM14 3v6h6M8 13h8M8 17h5"/></svg><span>制作</span></button>
+    <button class="mobile-nav-item" data-view="customers"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5v2"/></svg><span>客户</span></button>
+    <button class="mobile-nav-item" data-view="products"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5zM3 8v9l9 5 9-5V8M12 13v9M7 5.8l9 5"/></svg><span>产品</span></button>
+    <button class="mobile-nav-item" data-view="history"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2 7M3 5v6h6M12 7v5l3 2"/></svg><span>历史</span></button>
+    <button class="mobile-nav-item" data-view="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m9 3-1 3-3 1-2 3 2 2-1 3 2 3 3-1 3 2 3-2 3 1 2-3-1-3 2-2-2-3-3-1-1-3z"/></svg><span>设置</span></button>
+  </nav>
+
+  <dialog id="mobile-sheet" class="bottom-sheet no-print" aria-labelledby="mobile-sheet-title"><div class="sheet-heading"><div><h2 id="mobile-sheet-title">单据操作</h2><p>你的资料仅保存在此浏览器</p></div><button class="icon-button" id="close-mobile-sheet" aria-label="关闭操作菜单">×</button></div><div class="sheet-action-list">
+    <button class="sheet-action" data-mobile-action="local"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 15v6h16v-6"/></svg><div><strong>保存到本地</strong><small>直接下载含公章的 A4 PDF 文件</small></div><span>›</span></button>
+    <button class="sheet-action" data-mobile-action="print"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H3V9h18v9h-3M6 14h12v7H6zM17 11h1"/></svg><div><strong>打印 / 保存 PDF</strong><small>系统打印中选择「另存为 PDF」</small></div><span>›</span></button>
+    <button class="sheet-action" data-mobile-action="share"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3m-4 4 4-4 4 4M5 11v10h14V11"/></svg><div><strong>分享 Excel 文件</strong><small>通过手机系统分享发送单据</small></div><span>›</span></button>
+    <button class="sheet-action" data-mobile-action="excel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H5v18h14V8zM14 3v5h5M8 12l6 6m0-6-6 6"/></svg><div><strong>下载 Excel</strong><small>可继续编辑的 .xlsx 文件</small></div><span>›</span></button>
+    <button class="sheet-action" data-mobile-action="save"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21H3V3h14l4 4v14zM7 3v6h9V3M7 21v-8h10v8"/></svg><div><strong>保存到历史</strong><small>按 PI 编号保存，随时重新打开</small></div><span>›</span></button>
+    <button class="sheet-action" data-mobile-action="new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><div><strong>新建 PI</strong><small>带入默认公司、收款和付款条款</small></div><span>›</span></button>
+    <button class="sheet-action" data-mobile-action="demo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 4 12 8-12 8z"/></svg><div><strong>体验图册产品示例</strong><small>虚构客户 + 图册液压泵，价格待填</small></div><span>›</span></button>
+    <div class="sheet-divider"></div>
+    <button class="sheet-action" data-mobile-action="backup"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 15v6h16v-6"/></svg><div><strong>备份全部资料</strong><small>换手机前先导出，包含客户和单据</small></div><span>›</span></button>
+    <button class="sheet-action" data-mobile-action="restore"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m-4 4 4-4 4 4M4 15v6h16v-6"/></svg><div><strong>恢复全部备份</strong><small>导入 PI Studio JSON 备份</small></div><span>›</span></button>
+    <button class="sheet-action" data-mobile-action="import"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H5v18h14V8zM14 3v5h5M3 13h10m-3-3 3 3-3 3"/></svg><div><strong>导入单份 PI</strong><small>打开之前导出的单据 JSON</small></div><span>›</span></button>
+    <button class="sheet-action" data-mobile-action="invoice-backup"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H5v18h14V8zM14 3v5h5M12 11v7m-3-3 3 3 3-3"/></svg><div><strong>备份当前 PI</strong><small>单份 JSON，可换设备接着编辑</small></div><span>›</span></button>
+  </div></dialog>
+
+  <dialog id="edit-dialog" class="edit-dialog no-print"><form id="dialog-form"><div class="dialog-heading"><h2 id="dialog-title">编辑资料</h2><button class="icon-button" type="button" id="close-dialog" aria-label="关闭">×</button></div><div id="dialog-fields" class="form-grid"></div><div class="dialog-actions"><button class="button secondary" type="button" id="cancel-dialog">取消</button><button class="button primary" type="submit">保存资料</button></div></form></dialog>
+  <dialog id="confirm-dialog" class="confirm-dialog no-print"><h2 id="confirm-title"></h2><p id="confirm-message"></p><div class="dialog-actions"><button class="button secondary" id="confirm-cancel">取消</button><button class="button primary" id="confirm-ok">确定</button></div></dialog>
+  <div id="toast" class="toast no-print" role="status" aria-live="polite" hidden></div>
+  <input type="file" id="json-file" accept=".json,application/json" hidden>
+</body>
+</html>

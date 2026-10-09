@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#172b43">
+  <title>PI Studio · 手机端演示</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <style>
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:#192d43;background:#eef2f6}body{height:100dvh;display:flex;flex-direction:column}button,a{font:inherit;touch-action:manipulation}button{cursor:pointer}button:focus-visible,a:focus-visible{outline:3px solid #6c97d2;outline-offset:3px}header{display:flex;align-items:center;justify-content:space-between;gap:24px;background:white;border-bottom:1px solid #dce3eb;padding:17px 28px;flex-shrink:0}.title{min-width:0}h1{font-size:18px;line-height:1.4;margin:0;font-weight:650}.title p{font-size:12px;color:#62748a;margin:5px 0 0}.controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.sizes{display:flex;padding:4px;border-radius:10px;background:#eef2f6;gap:3px}.sizes button{min-width:57px;min-height:36px;border:0;border-radius:7px;background:transparent;color:#50647d;font-size:12px;font-variant-numeric:tabular-nums}.sizes button[aria-pressed=true]{background:#172b43;color:white}.action{display:inline-flex;align-items:center;justify-content:center;min-height:44px;border-radius:9px;padding:10px 14px;border:1px solid #cbd5e1;background:white;color:#28496c;text-decoration:none;font-size:12px;white-space:nowrap}.action.primary{background:#255fbe;color:white;border-color:#255fbe}.stage{min-height:0;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 24px 12px;overflow:auto}.device-space{position:relative;flex-shrink:0}.device{position:absolute;top:0;left:0;background:#172b43;padding:10px;border-radius:36px;transform-origin:top left;box-shadow:0 16px 38px #1c2b3d24}.device iframe{display:block;border:0;border-radius:26px;background:#f4f6f9}.caption{font-size:11px;color:#586c84;text-align:center;margin:13px 0 0;line-height:1.5;flex-shrink:0;font-variant-numeric:tabular-nums}#demo-message{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);max-width:90vw;padding:12px 18px;background:#172b43;color:white;font-size:12px;border-radius:9px;z-index:2}button:active,.action:active{transform:translateY(1px)}[hidden]{display:none!important}@media(hover:hover){.action:hover{background:#f2f6fa}.action.primary:hover{background:#1d50a3}.sizes button:not([aria-pressed=true]):hover{background:#dce5f0}}@media(max-width:760px){header{align-items:flex-start;flex-direction:column;padding:16px;gap:12px}.controls{width:100%;gap:8px}.sizes button{min-width:46px;min-height:38px}.action{padding:10px;font-size:11px}.stage{padding:15px 12px 10px}.title p{font-size:11px}.caption{font-size:10px;max-width:300px}.device{box-shadow:0 10px 24px #1c2b3d20}}@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title"><h1>PI Studio · 手机端演示</h1><p>可点击、填写和导出的手机尺寸工作台。</p></div>
+    <div class="controls">
+      <div class="sizes" role="group" aria-label="手机屏幕宽度">
+        <button data-size="375" aria-pressed="false">375px</button>
+        <button data-size="390" aria-pressed="true">390px</button>
+        <button data-size="430" aria-pressed="false">430px</button>
+      </div>
+      <button class="action primary" id="try-demo">体验图册产品示例</button>
+      <a class="action" href="./index.html" target="_blank" rel="noopener">打开完整页面</a>
+    </div>
+  </header>
+  <main class="stage" id="stage">
+    <div class="device-space" id="device-space"><div class="device" id="device"><iframe id="phone-app" src="./index.html" title="PI Studio 手机端，可直接操作" width="390" height="844" allow="web-share"></iframe></div></div>
+    <p class="caption" id="size-caption" role="status">390 × 844 · 与桌面版共用本机资料，编辑会自动保存</p>
+  </main>
+  <div id="demo-message" role="status" hidden></div>
+  <script>
+    (()=>{
+      const frame=document.getElementById('phone-app'),device=document.getElementById('device'),space=document.getElementById('device-space'),stage=document.getElementById('stage'),caption=document.getElementById('size-caption');
+      const sizes={375:812,390:844,430:932};let width=390,height=844,timer;
+      function fit(){
+        const style=getComputedStyle(stage),availableWidth=stage.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight),availableHeight=stage.clientHeight-parseFloat(style.paddingTop)-parseFloat(style.paddingBottom)-42;
+        const scale=Math.min(1,Math.max(.2,availableWidth/(width+20)),Math.max(.2,availableHeight/(height+20)));
+        frame.style.width=width+'px';frame.style.height=height+'px';frame.width=width;frame.height=height;
+        device.style.width=(width+20)+'px';device.style.height=(height+20)+'px';device.style.transform=`scale(${scale})`;
+        space.style.width=((width+20)*scale)+'px';space.style.height=((height+20)*scale)+'px';
+        caption.textContent=`${width} × ${height} · 与桌面版共用本机资料，编辑会自动保存`;
+      }
+      document.querySelectorAll('[data-size]').forEach(button=>button.addEventListener('click',()=>{
+        width=Number(button.dataset.size);height=sizes[width];document.querySelectorAll('[data-size]').forEach(other=>other.setAttribute('aria-pressed',String(other===button)));fit();
+      }));
+      document.getElementById('try-demo').addEventListener('click',()=>{
+        try{const button=frame.contentDocument?.getElementById('load-demo');if(!button)throw new Error('not ready');button.click();}
+        catch(error){const message=document.getElementById('demo-message');message.textContent='请在手机界面右上角「更多」中选择「体验图册产品示例」。';message.hidden=false;clearTimeout(timer);timer=setTimeout(()=>message.hidden=true,5000);}
+      });
+      window.addEventListener('resize',fit);if(window.ResizeObserver)new ResizeObserver(fit).observe(stage);fit();
+    })();
+  </script>
+</body>
+</html>

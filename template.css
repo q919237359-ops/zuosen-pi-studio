@@ -1,0 +1,62 @@
+/* Source: first visible PI sheet in ZSDP26100816.xls. Geometry follows its A4 print. */
+.invoice-paper{padding:33.9px 19.2px 35px;color:#000;font-family:"Times New Roman","Songti SC",SimSun,serif;font-size:10.5px;line-height:1.16;overflow-wrap:break-word}
+.source-table{width:100%;border-collapse:collapse;table-layout:fixed;border:1px solid #000;color:#000;font-size:inherit;line-height:inherit}
+.source-table td,.source-table th{border:.7px solid #000;padding:1px;vertical-align:middle;font-weight:400;white-space:pre-line;overflow-wrap:anywhere}
+.source-table .source-heading{height:60px;padding:0}
+.source-brand{height:59px;position:relative;display:flex;align-items:center;justify-content:center;text-align:center}
+.source-brand strong{max-width:440px;font-size:18.1px;line-height:1.12;white-space:normal;font-weight:700;padding-inline:12px}
+.source-logo{position:absolute;left:10.3px;top:3.8px;width:98.9px;height:36.1px;object-fit:contain}
+.source-iso{position:absolute;right:40.5px;top:5.6px;width:51.4px;height:52.9px;object-fit:fill}
+.source-table .source-title{height:22.1px;text-align:center;font-size:14.7px;font-weight:700;padding:0}
+.source-table .source-supplier{height:102px;vertical-align:middle}
+.source-table .source-order-number{height:38px;vertical-align:top;position:relative}
+.source-order-number span{display:block;margin-top:8px}
+.source-table b{font-weight:700}
+.source-table .source-order-date{height:64px;vertical-align:top;position:relative}
+.source-order-date span{display:block;margin-top:26px}
+.source-order-date small{display:block;font-size:9px;margin-top:4px}
+.source-table .source-buyer{height:95.7px;vertical-align:top;padding-top:2px}
+.source-table .source-delivery{height:41px;vertical-align:top}
+.source-delivery b{font-size:11px}
+.source-delivery div{font-size:9.4px}
+.source-table .source-remarks{height:54.7px;vertical-align:top}
+.source-remarks div{margin-top:14px}
+.source-table .source-payment{height:19px;text-align:center;padding:1px 3px}
+.source-column-head{height:19px}
+.source-column-head th{font-weight:700;text-align:center;white-space:normal;font-size:10.5px;padding:1px 0}
+.source-product-row td,.source-charge-row td{height:21px;text-align:center;font-size:10px;padding:4px 2px}
+.source-product-row .source-description{white-space:pre-line}
+.source-product-row td:nth-child(2){border-right:0}
+.source-product-row td:nth-child(3){border-left:0}
+.source-spec{font-size:9px;line-height:1.16;margin-top:3px;white-space:pre-line}
+.source-charge-row td{font-size:10.5px;padding:1px}
+.source-total td{height:21px;text-align:center;font-weight:700;font-size:11px;padding:1px}
+.source-table .source-words{height:21px;text-align:center;font-size:10.2px;font-weight:700;padding:2px}
+.source-table .source-paypal{height:21px;text-align:left}
+.source-table .source-bank{padding:0;vertical-align:top}
+.source-bank-content{position:relative;min-height:194.7px;padding:1px}
+.source-bank-text{white-space:pre-line;line-height:1.13;min-height:84px}
+.source-stamps{position:relative;height:87.5px;margin-top:5.7px;margin-left:-1px}
+.source-signature{position:absolute;left:113.7px;top:16px;width:138.5px;height:39.5px;object-fit:fill;filter:brightness(1.36)}
+.source-seal{position:absolute;left:227.2px;top:0;width:127.9px;height:87.5px;object-fit:fill}
+.source-table .source-bottom{height:32.8px;border-bottom-width:2px;vertical-align:top;padding:1px;font-size:9px;line-height:1.2}
+.source-bottom div{white-space:pre-line;padding:3px;overflow-wrap:anywhere}
+@page{size:A4;margin:9.9mm 5.6mm 10mm}
+@media print{
+  .invoice-paper{font-size:11.58px!important;line-height:1.16!important;font-family:"Times New Roman","Songti SC",SimSun,serif!important;color:#000!important;padding:0!important;min-height:0!important;overflow:visible!important}
+  .source-table{width:calc(100% - 1px);border-right:1.2px solid #000;font-size:inherit;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  .source-table tr{break-inside:avoid;page-break-inside:avoid}
+  .source-table .source-heading{height:66px}.source-brand{height:65px}.source-brand strong{font-size:20px;max-width:485px}
+  .source-logo{left:11.3px;top:4.2px;width:109.1px;height:39.8px}.source-iso{right:44.7px;top:6.2px;width:56.7px;height:58.4px}
+  .source-table .source-title{height:24.4px;font-size:16.2px}
+  .source-table .source-supplier{height:112.5px}.source-table .source-order-number{height:41.9px}.source-order-number span{margin-top:8.8px}
+  .source-table .source-order-date{height:70.6px}.source-order-date span{margin-top:28.7px}
+  .source-table .source-buyer{height:105.6px}.source-table .source-delivery{height:45.2px}.source-delivery b{font-size:12.1px}.source-delivery div{font-size:10.4px}
+  .source-table .source-remarks{height:60.4px}.source-remarks div{margin-top:15.4px}
+  .source-table .source-payment,.source-column-head{height:21px}.source-column-head th{font-size:11.58px}
+  .source-product-row td,.source-charge-row td,.source-total td,.source-table .source-words,.source-table .source-paypal{height:23.2px}
+  .source-product-row td{font-size:11.03px}.source-spec{font-size:9.93px}.source-charge-row td{font-size:11.58px}.source-total td{font-size:12.1px}.source-table .source-words{font-size:11.25px}
+  .source-bank-content{min-height:214.7px}.source-bank-text{min-height:92.7px}.source-stamps{height:96.5px;margin-top:6.3px;margin-left:-1.1px}
+  .source-signature{left:125.4px;top:17.7px;width:152.8px;height:43.6px}.source-seal{left:250.6px;top:0;width:141.1px;height:96.5px}
+  .source-table .source-bottom{height:36.2px;font-size:9.93px}
+}
