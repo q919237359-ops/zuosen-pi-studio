@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   if (window.PIOffline) return;
-  const BUILD = '20261009-3';
+  const BUILD = '20261010-1';
   const APP = new URL('./', document.currentScript?.src || location.href);
   const WORKER = new URL('sw.js', APP).href;
   const supported = location.protocol !== 'file:' && window.isSecureContext && 'serviceWorker' in navigator;

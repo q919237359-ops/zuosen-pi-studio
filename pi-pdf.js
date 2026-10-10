@@ -34,16 +34,71 @@
     return groups;
   }
 
+  function snapshotStyles() {
+    // The renderer's about:blank document cannot rely on our service worker.
+    // Preserve the loaded cascade and media queries without re-fetching CSS.
+    return [...document.styleSheets].filter(sheet => !sheet.disabled).map(sheet => {
+      if (sheet.href && new URL(sheet.href, document.baseURI).origin !== location.origin) return '';
+      let rules;
+      try { rules = [...sheet.cssRules].map(rule => rule.cssText).join('\n'); }
+      catch (_) { throw new Error('单据样式未能读取，请刷新后再保存'); }
+      const media = sheet.media.mediaText;
+      return media && media !== 'all' ? `@media ${media} {\n${rules}\n}` : rules;
+    }).join('\n');
+  }
+
+  function blobDataURL(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error('单据图片未能读取'));
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  async function embeddedImage({image, src}) {
+    if (src.startsWith('data:image/')) return src;
+    // Reuse the decoded pixels when possible, including an offline reload.
+    if (image.complete && image.naturalWidth && (image.currentSrc || image.src) === src) {
+      const canvas = document.createElement('canvas');
+      canvas.width = image.naturalWidth;canvas.height = image.naturalHeight;
+      try {
+        canvas.getContext('2d').drawImage(image, 0, 0);
+        return canvas.toDataURL('image/png');
+      } catch (_) {
+        // The main document can still fetch same-origin assets through its SW.
+      } finally { canvas.width = 0;canvas.height = 0; }
+    }
+    const url = new URL(src, document.baseURI);
+    if (url.origin !== location.origin || !['http:', 'https:', 'blob:'].includes(url.protocol)) throw new Error('单据图片未能读取');
+    const response = await fetch(url.href, {credentials:'same-origin'});
+    if (!response.ok) throw new Error('单据图片未能加载，请刷新后再保存');
+    return blobDataURL(await response.blob());
+  }
+
+  async function embedImages(source, snapshots) {
+    const images = new Map();
+    await Promise.all([...source.querySelectorAll('img')].map(async (image, index) => {
+      const snapshot = snapshots[index];
+      if (!images.has(snapshot.src)) images.set(snapshot.src, embeddedImage(snapshot));
+      image.removeAttribute('srcset');image.removeAttribute('sizes');
+      image.loading = 'eager';image.src = await images.get(snapshot.src);
+    }));
+  }
+
   async function create(invoice, {title = 'Proforma Invoice', onProgress = () => {}} = {}) {
     // Snapshot before asynchronous work: changes made during export belong to the next file.
     const source = invoice.cloneNode(true);
     const sourceTable = source.querySelector('.source-table');
     if (!sourceTable) throw new Error('当前单据没有可保存的内容');
+    const css = snapshotStyles();
+    const images = [...invoice.querySelectorAll('img')].map(image => ({image, src:image.currentSrc || image.src}));
     await Promise.all([
       loadScript('vendor/html2canvas-1.4.1.min.js', () => typeof window.html2canvas === 'function'),
       loadScript('vendor/jspdf-4.2.1.min.js', () => typeof window.jspdf?.jsPDF === 'function'),
       document.fonts?.ready || Promise.resolve()
     ]);
+    await embedImages(source, images);
     const stage = document.createElement('div');
     stage.dataset.pdfExport = 'true';
     stage.setAttribute('aria-hidden', 'true');
@@ -101,7 +156,13 @@
         const canvas = await window.html2canvas(pages[i].paper, {
           width:WIDTH,height:HEIGHT,scale:2,backgroundColor:'#fff',logging:false,
           scrollX:0,scrollY:0,imageTimeout:15000,
-          onclone:doc => { const copy=doc.querySelector('[data-pdf-export]');if(copy){copy.style.left='0';copy.style.position='absolute';} }
+          // Only the clone receives the captured CSS; the live page stays untouched.
+          ignoreElements:node => node.tagName === 'STYLE' || node.tagName === 'LINK' && node.relList.contains('stylesheet') || node.tagName === 'IMG' && !node.closest('[data-pdf-export]'),
+          onclone:doc => {
+            const style = doc.createElement('style');style.textContent = css;doc.head.append(style);
+            const copy = doc.querySelector('[data-pdf-export]');
+            if (copy) {copy.style.left='0';copy.style.position='absolute';}
+          }
         });
         if (i) pdf.addPage('a4','portrait');
         pdf.addImage(canvas.toDataURL('image/jpeg',0.98),'JPEG',0,0,210,297,undefined,'FAST');

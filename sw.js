@@ -1,6 +1,6 @@
 /* Bump BUILD whenever a deployed HTML, script, style, or built-in asset changes. */
 'use strict';
-const BUILD = '20261009-3';
+const BUILD = '20261010-1';
 const APP = new URL('./', self.location.href);
 const CACHE_PREFIX = `pi-studio-static:${encodeURIComponent(APP.pathname)}:`;
 const CACHE_NAME = CACHE_PREFIX + BUILD;

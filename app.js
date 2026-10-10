@@ -19,6 +19,14 @@
   const bankFields = [['beneficiary','收款人 / Beneficiary','text',true],['bankName','收款银行 / Bank name','text',true],['account','银行账号 / Account No.'],['swift','SWIFT / BIC'],['country','银行所在国家 / Country','text',true],['address','银行地址 / Bank address','textarea',true],['paypal','PayPal / 支付说明','textarea',true]];
   const productFields = [['description','产品名称 / Description','text',true],['model','型号 / Model No.'],['unit','单位'],['specification','规格说明','textarea',true],['unitPrice','默认单价','number'],['marks','MARKS / 唛头与备注']];
   const DOMESTIC_DEFAULTS = {taxNote:'以上价格含税13%。',shipping:'含普通物流运费。',responsibility:'货到需方15天内提出书面异议，否则视为认同处理。',quality:'整泵正常使用保用一年，维修泵更换配件保用叁个月，人为和不可抗因素除外。（因系统故障引起的如油污染，尖物压迫磨损等情况除外，另客户保质期内自行拆装也不予保修），散配件不保用。',dispute:'本合同传真件有同等效力。',signingPlace:'',taxId:'',sellerFax:'',buyerFax:'',buyerAgent:''};
+  // Supplier and VAT account verified against the supplied ZSYC26100913 contract.
+  // The email follows the operator's updated instruction, rather than the old PDF.
+  const DOMESTIC_EMAIL = 'sales@cnzuosen.com';
+  const ZHUOXIN_REFERENCE = {
+    seller:{name:'广东卓信液压科技有限公司',address:'广东省佛山市南海区丹灶镇上安管理区郭家村工业区竹脚北二路13号',contact:'张俊彦',phone:'18665326168',email:DOMESTIC_EMAIL},
+    bank:{beneficiary:'广东卓信液压科技有限公司',bankName:'中国建设银行佛山小塘支行',account:'4405 0166 7237 0000 0863'},
+    taxId:'91441900MA53KK803N'
+  };
   const domesticFields = [['taxNote','价税约定','textarea',true],['shipping','运费约定','textarea',true],['responsibility','验收约定','textarea',true],['quality','质保约定','textarea',true],['dispute','合同效力 / 其他约定','textarea',true],['signingPlace','签订地点'],['taxId','供方统一社会信用代码'],['sellerFax','供方传真'],['buyerFax','需方传真'],['buyerAgent','需方经手人']];
   const ICONS = {"editor": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M14 3H5a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9zM14 3v6h6M8 13h8M8 17h5\"/></svg>", "customers": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"9\" cy=\"8\" r=\"3\"/><path d=\"M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5v2\"/></svg>", "products": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m12 3 9 5-9 5-9-5zM3 8v9l9 5 9-5V8M12 13v9M7 5.8l9 5\"/></svg>", "history": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M3 11a9 9 0 1 1 2 7M3 5v6h6M12 7v5l3 2\"/></svg>", "settings": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"m9 3-1 3-3 1-2 3 2 2-1 3 2 3 3-1 3 2 3-2 3 1 2-3-1-3 2-2-2-3-3-1-1-3z\"/></svg>"};
   const SEALS = {international:{name:'外贸原版椭圆章',src:'./assets/zuosen-company-seal.png'},'zuosen-cn':{name:'深圳市佐森科技有限公司',src:'./assets/zuosen-cn-seal.png'},'zhuoxin-cn':{name:'广东卓信液压科技有限公司',src:'./assets/zhuoxin-cn-seal.png'},none:{name:'不盖章',src:''}};
@@ -31,6 +39,21 @@
   function emptyParty() { return {name:'',address:'',contact:'',phone:'',email:''}; }
   function emptyBank() { return {beneficiary:'',bankName:'',account:'',swift:'',country:'',address:'',paypal:''}; }
   function emptyItem() { return {description:'',model:'',specification:'',quantity:'1',unit:'PCS',unitPrice:'0',marks:''}; }
+  function hasDomesticReference(record) {
+    return (record?.meta?.market||record?.market)==='domestic'&&record.seller?.name?.trim()===ZHUOXIN_REFERENCE.seller.name;
+  }
+  function fixedSellerFields(record) {
+    if(hasDomesticReference(record))return true;
+    return (record?.meta?.market||record?.market)==='domestic'&&record.seller?.name?.trim()==='深圳市佐森科技有限公司'?['email']:false;
+  }
+  function applyDomesticReference(record) {
+    if(hasDomesticReference(record)){
+      record.seller={...record.seller,...ZHUOXIN_REFERENCE.seller};
+      record.bank={...emptyBank(),...ZHUOXIN_REFERENCE.bank};
+      record.domestic={...record.domestic,taxId:ZHUOXIN_REFERENCE.taxId};
+    }else if(fixedSellerFields(record))record.seller.email=DOMESTIC_EMAIL;
+    return record;
+  }
   function profileFor(market='international',id='') {return db.companyProfiles?.find(x=>x.id===id&&x.market===market)||db.companyProfiles?.find(x=>x.id===db.defaultProfileIds?.[market]&&x.market===market)||db.companyProfiles?.find(x=>x.market===market);}
   function sealSource(record) {return record.sealId==='none'?'':safeSeal(record.sealDataUrl)||(SEALS[record.sealId]||SEALS.international).src;}
   function blankInvoice(market='international',profileId='') {
@@ -135,6 +158,9 @@
       if(!db.companyProfiles.some(p=>p.id===db.defaultProfileIds[market]&&p.market===market))db.defaultProfileIds[market]=db.companyProfiles.find(p=>p.market===market).id;
     }
     db.marketDrafts=db.marketDrafts||{};
+    db.companyProfiles.forEach(applyDomesticReference);
+    Object.values(db.marketDrafts).forEach(applyDomesticReference);
+    if(db.draft)applyDomesticReference(db.draft);
   }
   ensureProfiles();
   let state = db.draft || blankInvoice();
@@ -159,9 +185,12 @@
     const keys = path.split('.'); let cursor=object;
     keys.slice(0,-1).forEach(key => { if (!cursor[key]) cursor[key]={}; cursor=cursor[key]; }); cursor[keys.at(-1)]=value;
   }
-  function formFields(definitions,prefix,source={}) {
+  function formFields(definitions,prefix,source={},fixed=false) {
     const limits={name:200,address:2000,contact:200,phone:80,email:254,beneficiary:300,bankName:300,account:200,swift:100,country:200,paypal:1000,description:3000,model:200,unit:50,specification:3000,unitPrice:64,marks:1000,taxNote:2000,shipping:2000,responsibility:3000,quality:3000,dispute:3000,taxId:100,sellerFax:80,buyerFax:80};
-    return definitions.map(([key,label,type='text',wide=false]) => `<label class="${wide?'span-2':''}">${esc(label)}${type==='textarea'?`<textarea rows="2" data-field="${esc(prefix+key)}" maxlength="${limits[key]||200}">${esc(source[key])}</textarea>`:`<input data-field="${esc(prefix+key)}" type="${type}" ${type==='number'?'min="0" step="0.0001" inputmode="decimal"':''} maxlength="${limits[key]||200}" value="${esc(source[key])}">`}</label>`).join('');
+    return definitions.map(([key,label,type='text',wide=false]) => {
+      const attrs=fixed===true||Array.isArray(fixed)&&fixed.includes(key)?' readonly title="固定资料，自动带入，无需修改"':'';
+      return `<label class="${wide?'span-2':''}">${esc(label)}${type==='textarea'?`<textarea rows="2" data-field="${esc(prefix+key)}" maxlength="${limits[key]||200}"${attrs}>${esc(source[key])}</textarea>`:`<input data-field="${esc(prefix+key)}" type="${type}" ${type==='number'?'min="0" step="0.0001" inputmode="decimal"':''} maxlength="${limits[key]||200}" value="${esc(source[key])}"${attrs}>`}</label>`;
+    }).join('');
   }
   function populateFields(root = document) { $$('[data-field]',root).forEach(node => { if (getPath(state,node.dataset.field) != null) node.value=getPath(state,node.dataset.field); }); }
   function prepareFormControls(root=document) {
@@ -279,8 +308,11 @@
   }
   function update() { renderInvoice(); scheduleSave(); $('#validation').hidden=true; }
   function syncAll() {
-    $('#invoice-seller-fields').innerHTML=formFields(sellerFields,'seller.',state.seller); $('#invoice-bank-fields').innerHTML=formFields(bankFields,'bank.',state.bank);
-    $('#invoice-domestic-fields').innerHTML=formFields(domesticFields,'domestic.',state.domestic);
+    applyDomesticReference(state);
+    const fixed=hasDomesticReference(state);
+    $('#invoice-seller-fields').innerHTML=formFields(sellerFields,'seller.',state.seller,fixedSellerFields(state)); $('#invoice-bank-fields').innerHTML=formFields(bankFields,'bank.',state.bank,fixed);
+    $('#invoice-domestic-fields').innerHTML=formFields(domesticFields,'domestic.',state.domestic,fixed?['taxId']:false);
+    $('.bank-details summary span').textContent=fixed?'原合同资料 · 自动带入':'点击展开编辑';
     populateFields($('#view-editor')); syncSelectors(); renderItems(); renderInvoice(); $('#validation').hidden=true;
     prepareFormControls($('#view-editor'));
   }
@@ -305,9 +337,10 @@
   }
   function renderSettings() {
     const s=db.companyProfiles.find(x=>x.id===settingsProfileId)||profileFor(state.meta.market,state.meta.profileId);
-    settingsProfileId=s.id;settingsDirty=false;
+    settingsProfileId=s.id;settingsDirty=false;applyDomesticReference(s);
+    const fixed=hasDomesticReference(s);
     const domestic=s.market==='domestic',logoSrc=s.logoDataUrl||(s.logoId==='domestic'?'./assets/zuosen-domestic-logo.jpg':'./assets/zuosen-logo.jpeg'),sealSrc=sealSource(s);
-    $('#view-settings').innerHTML=heading('抬头与公章','每个公司独立保存资料、收款账户和公章。')+`<div class="profile-manager-toolbar" id="profile-manager-toolbar"><label for="settings-profile-select">选择要修改的抬头<select id="settings-profile-select" name="settingsProfile">${db.companyProfiles.map(p=>`<option value="${esc(p.id)}">${p.market==='domestic'?'国内':'外贸'} · ${esc(p.seller.name||'未命名抬头')}</option>`).join('')}</select></label><div><button type="button" class="button secondary" id="new-company-profile">＋ 新增抬头</button><button type="button" class="text-button delete-button" id="delete-company-profile">删除抬头</button></div></div><form id="settings-form"><section class="settings-card company-profile-card"><div class="profile-card-heading"><div><span class="profile-kind">${domestic?'国内 · 中文供货合同':'外贸 · 英文 PI'}</span><h2>公司抬头</h2></div><label class="default-profile-choice"><input type="checkbox" name="makeDefault" ${db.defaultProfileIds[s.market]===s.id?'checked':''}>设为${domestic?'国内':'外贸'}默认抬头</label></div><p>公司名称与公章需要相符；修改后可用于新单，也可应用到当前单据。</p><div class="form-grid">${formFields(sellerFields,'seller.',s.seller)}</div><div class="logo-upload"><div class="logo-preview">${s.logoId==='none'&&!s.logoDataUrl?'无 Logo':`<img width="120" height="50" src="${esc(logoSrc)}" alt="当前公司 Logo">`}</div><div class="logo-actions"><button class="button small secondary" type="button" id="upload-logo">上传 Logo</button> <button class="text-button" type="button" id="remove-logo">恢复预设 Logo</button><p>图片仅保存在此浏览器；建议使用横版 PNG / JPG。</p></div></div></section><section class="settings-card"><h2>对应公章</h2><p>选择提供的章图，或上传此公司的公章。历史单据保留保存时的公章。</p><label class="full-label" for="profile-seal-select">公章图片<select id="profile-seal-select" name="profileSeal">${sealOptions(s)}</select></label><div class="seal-upload"><div class="seal-preview">${sealSrc?`<img width="160" height="160" src="${esc(sealSrc)}" alt="${esc(s.seller.name||'当前公司')}公章预览">`:'<span>此抬头不盖章</span>'}</div><div class="seal-actions"><button type="button" class="button secondary" id="upload-seal">上传 / 替换公章</button><button type="button" class="text-button" id="remove-seal">设为不盖章</button><p>PNG / JPG / WebP，最大 5 MB。章图按原比例显示，仅保存在本机。</p></div></div></section><section class="settings-card"><h2>${domestic?'国内收款资料':'收款银行'}</h2><p>${domestic?'填写本公司的人民币账户。国内抬头不会带入外贸账户。':'填写此抬头确认过的收款资料。'}</p><div class="form-grid">${formFields(domestic?bankFields.filter(x=>!['swift','country','paypal'].includes(x[0])):bankFields,'bank.',s.bank)}</div>${domestic?`<div class="form-grid">${formFields([['taxId','统一社会信用代码'],['sellerFax','公司传真']],'domestic.',s.domestic)}</div>`:''}</section><section class="settings-card"><h2>新单默认约定</h2><p>新建此公司的单据时自动带入，每单仍可修改。</p><div class="form-grid"><label>默认币种<select name="currency" ${domestic?'disabled':''}><option>USD</option><option>EUR</option><option>CNY</option><option>GBP</option></select></label><label>默认订金比例（%）<input name="depositPercent" type="number" min="0" max="100" step="0.01" inputmode="decimal" value="${esc(s.depositPercent??'30')}"></label><label ${domestic?'hidden':''}>默认贸易条款<select name="incoterm"><option value="">请选择</option>${['EXW','FCA','FOB','CFR','CIF','CPT','CIP','DAP','DPU','DDP','FAS'].map(x=>`<option>${x}</option>`).join('')}</select></label><label>默认交货期<input name="leadTime" maxlength="200" value="${esc(s.leadTime)}" placeholder="${domestic?'例：收到货款后 5 天…':'Within 25 days after deposit…'}"></label><label class="span-2">默认付款条款<textarea name="paymentTerms" rows="3" maxlength="2000">${esc(s.paymentTerms)}</textarea></label><label class="span-2">默认备注<textarea name="notes" rows="3" maxlength="8000">${esc(s.notes)}</textarea></label></div>${domestic?`<div class="form-grid domestic-settings-fields">${formFields(domesticFields.filter(x=>!['taxId','sellerFax','buyerFax','buyerAgent'].includes(x[0])),'domestic.',s.domestic)}</div>`:''}<div class="settings-footer"><button class="button primary" type="submit">保存此抬头</button><button class="button secondary" type="button" id="apply-settings">保存并用于当前单据</button><button class="button ghost" type="button" data-view="editor">回到制作页面 <span aria-hidden="true">→</span></button></div></section></form><p class="small-help">抬头、章图和收款资料保存在本机。备份全部资料后，可在另一台设备恢复。</p>`;
+    $('#view-settings').innerHTML=heading('抬头与公章','每个公司独立保存资料、收款账户和公章。')+`<div class="profile-manager-toolbar" id="profile-manager-toolbar"><label for="settings-profile-select">选择要修改的抬头<select id="settings-profile-select" name="settingsProfile">${db.companyProfiles.map(p=>`<option value="${esc(p.id)}">${p.market==='domestic'?'国内':'外贸'} · ${esc(p.seller.name||'未命名抬头')}</option>`).join('')}</select></label><div><button type="button" class="button secondary" id="new-company-profile">＋ 新增抬头</button><button type="button" class="text-button delete-button" id="delete-company-profile">删除抬头</button></div></div><form id="settings-form"><section class="settings-card company-profile-card"><div class="profile-card-heading"><div><span class="profile-kind">${domestic?'国内 · 中文供货合同':'外贸 · 英文 PI'}</span><h2>公司抬头</h2></div><label class="default-profile-choice"><input type="checkbox" name="makeDefault" ${db.defaultProfileIds[s.market]===s.id?'checked':''}>设为${domestic?'国内':'外贸'}默认抬头</label></div><p>${fixed?'供方资料按原合同固定带入，无需修改；公章仍可选择或替换。':'公司名称与公章需要相符；修改后可用于新单，也可应用到当前单据。'}</p><div class="form-grid">${formFields(sellerFields,'seller.',s.seller,fixedSellerFields(s))}</div><div class="logo-upload"><div class="logo-preview">${s.logoId==='none'&&!s.logoDataUrl?'无 Logo':`<img width="120" height="50" src="${esc(logoSrc)}" alt="当前公司 Logo">`}</div><div class="logo-actions"><button class="button small secondary" type="button" id="upload-logo">上传 Logo</button> <button class="text-button" type="button" id="remove-logo">恢复预设 Logo</button><p>图片仅保存在此浏览器；建议使用横版 PNG / JPG。</p></div></div></section><section class="settings-card"><h2>对应公章</h2><p>选择提供的章图，或上传此公司的公章。历史单据保留保存时的公章。</p><label class="full-label" for="profile-seal-select">公章图片<select id="profile-seal-select" name="profileSeal">${sealOptions(s)}</select></label><div class="seal-upload"><div class="seal-preview">${sealSrc?`<img width="160" height="160" src="${esc(sealSrc)}" alt="${esc(s.seller.name||'当前公司')}公章预览">`:'<span>此抬头不盖章</span>'}</div><div class="seal-actions"><button type="button" class="button secondary" id="upload-seal">上传 / 替换公章</button><button type="button" class="text-button" id="remove-seal">设为不盖章</button><p>PNG / JPG / WebP，最大 5 MB。章图按原比例显示，仅保存在本机。</p></div></div></section><section class="settings-card"><h2>${domestic?'国内收款资料':'收款银行'}</h2><p>${fixed?'增值税账户与税号按原合同固定带入，无需修改。':domestic?'填写本公司的人民币账户。国内抬头不会带入外贸账户。':'填写此抬头确认过的收款资料。'}</p><div class="form-grid">${formFields(domestic?bankFields.filter(x=>!['swift','country','paypal'].includes(x[0])):bankFields,'bank.',s.bank,fixed)}</div>${domestic?`<div class="form-grid">${formFields([['taxId','统一社会信用代码'],['sellerFax','公司传真']],'domestic.',s.domestic,fixed?['taxId']:false)}</div>`:''}</section><section class="settings-card"><h2>新单默认约定</h2><p>新建此公司的单据时自动带入，每单仍可修改。</p><div class="form-grid"><label>默认币种<select name="currency" ${domestic?'disabled':''}><option>USD</option><option>EUR</option><option>CNY</option><option>GBP</option></select></label><label>默认订金比例（%）<input name="depositPercent" type="number" min="0" max="100" step="0.01" inputmode="decimal" value="${esc(s.depositPercent??'30')}"></label><label ${domestic?'hidden':''}>默认贸易条款<select name="incoterm"><option value="">请选择</option>${['EXW','FCA','FOB','CFR','CIF','CPT','CIP','DAP','DPU','DDP','FAS'].map(x=>`<option>${x}</option>`).join('')}</select></label><label>默认交货期<input name="leadTime" maxlength="200" value="${esc(s.leadTime)}" placeholder="${domestic?'例：收到货款后 5 天…':'Within 25 days after deposit…'}"></label><label class="span-2">默认付款条款<textarea name="paymentTerms" rows="3" maxlength="2000">${esc(s.paymentTerms)}</textarea></label><label class="span-2">默认备注<textarea name="notes" rows="3" maxlength="8000">${esc(s.notes)}</textarea></label></div>${domestic?`<div class="form-grid domestic-settings-fields">${formFields(domesticFields.filter(x=>!['taxId','sellerFax','buyerFax','buyerAgent'].includes(x[0])),'domestic.',s.domestic)}</div>`:''}<div class="settings-footer"><button class="button primary" type="submit">保存此抬头</button><button class="button secondary" type="button" id="apply-settings">保存并用于当前单据</button><button class="button ghost" type="button" data-view="editor">回到制作页面 <span aria-hidden="true">→</span></button></div></section></form><p class="small-help">抬头、章图和收款资料保存在本机。备份全部资料后，可在另一台设备恢复。</p>`;
     $('#settings-profile-select').value=s.id;$('#settings-form [name=currency]').value=s.currency||'USD';$('#settings-form [name=incoterm]').value=s.incoterm||'';
     $('#profile-seal-select').value=s.sealId==='none'?'none':safeSeal(s.sealDataUrl)?'custom':s.sealId;
     prepareFormControls($('#view-settings'));
@@ -413,7 +446,7 @@
     if(check.errors.some(x=>x.includes('订金'))){fieldError($('[name=depositPercent]',form),'请输入 0 到 100 之间的订金比例');$('[name=depositPercent]',form).focus();toast('订金比例应在 0 到 100 之间',true);return false;}
     const sealChoice=$('#profile-seal-select').value;
     if(sealChoice!=='custom'){raw.sealId=sealChoice;raw.sealDataUrl='';}
-    const next=cleanProfile(raw);Object.assign(profile,next);
+    const next=cleanProfile(applyDomesticReference(raw));Object.assign(profile,next);
     if($('[name=makeDefault]',form).checked)db.defaultProfileIds[profile.market]=profile.id;
     if(profile.market==='international'&&db.defaultProfileIds.international===profile.id)db.settings=clone(profile);
     settingsDirty=false;$$('[aria-invalid]',form).forEach(clearFieldError);
@@ -524,7 +557,7 @@
     if(node.closest('#settings-form')){settingsDirty=true;return;}
     if(node.matches('[data-search]')){let count=0;const query=node.value.trim().toLowerCase();$$('[data-search-text]',node.parentElement).forEach(card=>{const match=card.dataset.searchText.includes(query);card.hidden=!match;if(match)count++;});$('[data-no-results]',node.parentElement).hidden=count>0;return;}
     if(!node.closest('#view-editor'))return;
-    if(node.dataset.field){setPath(state,node.dataset.field,node.value);if(node.dataset.field==='meta.currency')renderItems();update();}
+    if(node.dataset.field){setPath(state,node.dataset.field,node.value);if(node.dataset.field==='seller.name'&&fixedSellerFields(state)){const profile=db.companyProfiles.find(p=>p.market===state.meta.market&&p.seller.name===state.seller.name);if(profile)state.meta.profileId=profile.id;syncAll();}if(node.dataset.field==='meta.currency')renderItems();update();}
     if(node.dataset.itemField){state.items[Number(node.dataset.index)][node.dataset.itemField]=node.value;update();}
   });
   document.addEventListener('change',event=>{
