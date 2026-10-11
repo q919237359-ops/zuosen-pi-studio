@@ -1,6 +1,6 @@
 /* Bump BUILD whenever a deployed HTML, script, style, or built-in asset changes. */
 'use strict';
-const BUILD = '20261010-1';
+const BUILD = '20261011-1';
 const APP = new URL('./', self.location.href);
 const CACHE_PREFIX = `pi-studio-static:${encodeURIComponent(APP.pathname)}:`;
 const CACHE_NAME = CACHE_PREFIX + BUILD;
@@ -9,7 +9,7 @@ const FILES = [
   'styles.css', 'mobile.css', 'template.css', 'domestic.css', 'studio-ui.css',
   'pi-utils.js', 'domestic-template.js', 'pi-pdf.js', 'app.js', 'offline.js',
   'manifest.webmanifest', 'install.js', 'install.css', 'favicon.svg',
-  'assets/zuosen-logo.jpeg', 'assets/zuosen-brand-square.jpg',
+  'assets/zuosen-logo.jpeg', 'assets/zuosen-logo-transparent.png', 'assets/zuosen-brand-square.jpg',
   'assets/zuosen-iso9001.png', 'assets/zuosen-authorized-signature.png',
   'assets/zuosen-company-seal.png', 'assets/zuosen-cn-seal.png',
   'assets/zhuoxin-cn-seal.png', 'assets/zuosen-domestic-logo.jpg',

@@ -30,9 +30,11 @@
   const domesticFields = [['taxNote','价税约定','textarea',true],['shipping','运费约定','textarea',true],['responsibility','验收约定','textarea',true],['quality','质保约定','textarea',true],['dispute','合同效力 / 其他约定','textarea',true],['signingPlace','签订地点'],['taxId','供方统一社会信用代码'],['sellerFax','供方传真'],['buyerFax','需方传真'],['buyerAgent','需方经手人']];
   const ICONS = {"editor": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M14 3H5a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9zM14 3v6h6M8 13h8M8 17h5\"/></svg>", "customers": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"9\" cy=\"8\" r=\"3\"/><path d=\"M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5v2\"/></svg>", "products": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m12 3 9 5-9 5-9-5zM3 8v9l9 5 9-5V8M12 13v9M7 5.8l9 5\"/></svg>", "history": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M3 11a9 9 0 1 1 2 7M3 5v6h6M12 7v5l3 2\"/></svg>", "settings": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"m9 3-1 3-3 1-2 3 2 2-1 3 2 3 3-1 3 2 3-2 3 1 2-3-1-3 2-2-2-3-3-1-1-3z\"/></svg>"};
   const SEALS = {international:{name:'外贸原版椭圆章',src:'./assets/zuosen-company-seal.png'},'zuosen-cn':{name:'深圳市佐森科技有限公司',src:'./assets/zuosen-cn-seal.png'},'zhuoxin-cn':{name:'广东卓信液压科技有限公司',src:'./assets/zhuoxin-cn-seal.png'},none:{name:'不盖章',src:''}};
-  let currentView = 'editor', panel = 'order', editContext = null, confirmResolver = null, importMode = 'invoice';
+  let currentView = 'editor', panel = 'order', lastEditorPanel = 'order', editContext = null, confirmResolver = null, importMode = 'invoice';
   let settingsProfileId = '', settingsDirty = false;
   let timer, toastTimer, storageOK = true, previewExpanded = false, previewZoomed = false, pdfBusy = false;
+  let validationActive = false, previewOverflow = '', previewReturnFocus = null, previewTriggerMarkup = '', previewInertRecords = [];
+  const libraryQueries = {customers:'',products:'',history:''};
   const mobileQuery=window.matchMedia('(max-width:767px), (pointer:coarse) and (max-width:1024px) and (max-height:550px)');
   const isMobile=()=>mobileQuery.matches;
 
@@ -217,6 +219,7 @@
     const selected=profiles.some(x=>x.id===state.meta.profileId);
     $('#company-profile-select').innerHTML=(selected?'':`<option value="">当前单据 · ${esc(state.seller.name||'自定义抬头')}</option>`)+profiles.map(x=>`<option value="${esc(x.id)}">${esc(x.seller.name||'未命名抬头')}</option>`).join('');
     $('#company-profile-select').value=selected?state.meta.profileId:'';
+    const issuerSummary=$('#issuer-summary-name');if(issuerSummary)issuerSummary.textContent=state.seller.name||'请选择开单抬头';
     const sealName=state.sealId==='none'?'不盖章':safeSeal(state.sealDataUrl)?'自定义公章':(SEALS[state.sealId]||SEALS.international).name;
     $('#company-context-note').textContent=`${domestic?'中文供货合同 · 人民币':'英文形式发票'} · ${sealName}。国内与外贸草稿分别保存。`;
     const currency=$('[data-field="meta.currency"]');currency.disabled=domestic;currency.title=domestic?'国内合同以人民币开具':'';
@@ -246,7 +249,7 @@
   }
   function money(value) { return U.formatMoney(Number.isFinite(value)?value:0,state.meta.currency); }
   function renderItems() {
-    $('#items-editor').innerHTML=state.items.map((item,index)=>`<div class="item-card" data-item="${index}"><div class="item-card-heading"><span class="item-index">产品 ${String(index+1).padStart(2,'0')}</span><div class="item-card-actions"><button data-item-action="save" data-index="${index}">存入产品库</button><button data-item-action="duplicate" data-index="${index}">复制</button><button data-item-action="remove" data-index="${index}" aria-label="删除产品 ${index+1}">删除 ×</button></div></div><div class="form-grid"><label class="span-2">产品名称 / Description *<input data-item-field="description" data-index="${index}" value="${esc(item.description)}" placeholder="产品名称（建议英文）" maxlength="2000"></label><label>型号 / Model No.<input data-item-field="model" data-index="${index}" value="${esc(item.model)}" placeholder="型号" maxlength="200"></label><label>MARKS / 备注<input data-item-field="marks" data-index="${index}" value="${esc(item.marks)}" placeholder="唛头、颜色等" maxlength="1000"></label><label class="span-2">规格说明<textarea rows="2" data-item-field="specification" data-index="${index}" placeholder="尺寸、材质、包装等" maxlength="3000">${esc(item.specification)}</textarea></label><div class="quantity-grid"><label>数量 *<input type="number" min="0.001" step="0.001" inputmode="decimal" data-item-field="quantity" data-index="${index}" value="${esc(item.quantity)}"></label><label>单位<input data-item-field="unit" data-index="${index}" value="${esc(item.unit)}" placeholder="PCS" maxlength="50"></label><label>单价 (${esc(state.meta.currency)}) *<input type="number" min="0" step="0.0001" inputmode="decimal" data-item-field="unitPrice" data-index="${index}" value="${esc(item.unitPrice)}"></label></div></div><div class="line-total"><span>此项金额</span><strong data-line-total="${index}">${money(0)}</strong></div></div>`).join('');
+    $('#items-editor').innerHTML=state.items.map((item,index)=>`<div class="item-card" data-item="${index}"><div class="item-card-heading"><span class="item-index" tabindex="-1">产品 ${String(index+1).padStart(2,'0')}</span><div class="item-card-actions"><button data-item-action="save" data-index="${index}">存入产品库</button><button data-item-action="duplicate" data-index="${index}">复制</button><button data-item-action="remove" data-index="${index}" aria-label="删除产品 ${index+1}">删除 ×</button></div></div><div class="form-grid"><label class="span-2">产品名称 / Description *<input data-item-field="description" data-index="${index}" value="${esc(item.description)}" placeholder="产品名称（建议英文）" maxlength="2000"></label><label>型号 / Model No.<input data-item-field="model" data-index="${index}" value="${esc(item.model)}" placeholder="型号" maxlength="200"></label><label>MARKS / 备注<input data-item-field="marks" data-index="${index}" value="${esc(item.marks)}" placeholder="唛头、颜色等" maxlength="1000"></label><label class="span-2">规格说明<textarea rows="2" data-item-field="specification" data-index="${index}" placeholder="尺寸、材质、包装等" maxlength="3000">${esc(item.specification)}</textarea></label><div class="quantity-grid"><label>数量 *<input type="number" min="0.001" step="0.001" inputmode="decimal" data-item-field="quantity" data-index="${index}" value="${esc(item.quantity)}"></label><label>单位<input data-item-field="unit" data-index="${index}" value="${esc(item.unit)}" placeholder="PCS" maxlength="50"></label><label>单价 (${esc(state.meta.currency)}) *<input type="number" min="0" step="0.0001" inputmode="decimal" data-item-field="unitPrice" data-index="${index}" value="${esc(item.unitPrice)}"></label></div></div><div class="line-total"><span>此项金额</span><strong data-line-total="${index}">${money(0)}</strong></div></div>`).join('');
     updateTotals();prepareFormControls($('#items-editor'));
   }
   function updateTotals() {
@@ -306,8 +309,9 @@
     const actualWidth=isMobile()&&previewZoomed?720:width;
     const scale=actualWidth/720; invoice.style.transform=`scale(${scale})`; viewport.style.width=`${actualWidth}px`; viewport.style.height=`${invoice.scrollHeight*scale}px`;
   }
-  function update() { renderInvoice(); scheduleSave(); $('#validation').hidden=true; }
+  function update() { renderInvoice(); scheduleSave(); if(validationActive)validate({interactive:false});else $('#validation').hidden=true; }
   function syncAll() {
+    validationActive=false;$$('[aria-invalid]',$('#view-editor')).forEach(clearFieldError);
     applyDomesticReference(state);
     const fixed=hasDomesticReference(state);
     $('#invoice-seller-fields').innerHTML=formFields(sellerFields,'seller.',state.seller,fixedSellerFields(state)); $('#invoice-bank-fields').innerHTML=formFields(bankFields,'bank.',state.bank,fixed);
@@ -318,6 +322,7 @@
   }
   function setPanel(name) {
     panel=name;
+    if(['order','items','terms'].includes(name))lastEditorPanel=name;
     $$('.editor-tab').forEach(node=>{const active=node.dataset.panel===name;node.classList.toggle('active',active);node.setAttribute('aria-selected',String(active));node.tabIndex=active?0:-1;});
     $$('.tab-panel').forEach(node=>{const active=node.id===`panel-${name}`;node.classList.toggle('active',active);node.hidden=!active;});
     document.body.classList.toggle('mobile-show-preview',name==='preview');
@@ -325,15 +330,37 @@
     updateMobileDock();
     requestAnimationFrame(resizePreview);
   }
-  function heading(title,sub,action='') { return `<div class="page-heading"><div><div class="eyebrow">YOUR BUSINESS, ORGANIZED</div><h1>${title}<span>.</span></h1><p>${sub}</p></div>${action}</div>`; }
+  function navigatePanel(name,{top=false}={}) {
+    setPanel(name);$(`#tab-${name}`)?.focus({preventScroll:true});
+    if(top)window.scrollTo({top:0,behavior:'instant'});else $('.editor-tabs').scrollIntoView({block:'start',behavior:'auto'});
+  }
+  function heading(title,sub,action='') { return `<div class="page-heading"><div><h1>${title}</h1><p>${sub}</p></div>${action}</div>`; }
   function emptyState(title,description,action='') { return `<div class="empty-state"><div class="empty-symbol" aria-hidden="true">${ICONS.editor}</div><h2>${title}</h2><p>${description}</p>${action}</div>`; }
+  function librarySearch(type,name,placeholder) {
+    const value=libraryQueries[type]||'';
+    return `<div class="library-toolbar"><input type="search" class="library-search" data-search="${type}" value="${esc(value)}" placeholder="${placeholder}" aria-label="搜索${name}" autocomplete="off" spellcheck="false"><button type="button" class="text-button" data-clear-search="${type}" ${value?'':'hidden'} aria-label="清空${name}搜索">清空</button></div><div class="library-search-meta"><span data-search-status role="status" aria-live="polite" aria-atomic="true"></span></div>`;
+  }
+  function libraryNoResults(type,name) {
+    return `<div class="library-no-results" data-no-results hidden><p>没有找到匹配的${name}。</p><button type="button" class="text-button" data-clear-search="${type}">清空搜索，查看全部${name}</button></div>`;
+  }
+  function filterLibrary(type) {
+    const root=$(`#view-${type}`),input=$('[data-search]',root);if(!input)return;
+    libraryQueries[type]=input.value;const query=input.value.trim().toLowerCase(),cards=$$('[data-search-text]',root);let count=0;
+    cards.forEach(card=>{const match=card.dataset.searchText.includes(query);card.hidden=!match;if(match)count++;});
+    $('[data-no-results]',root).hidden=count>0;
+    $$('.library-toolbar [data-clear-search]',root).forEach(button=>button.hidden=!input.value);
+    const name=({customers:'客户',products:'产品',history:'单据'})[type],status=$('[data-search-status]',root),message=query?`找到 ${count} / ${cards.length} 条${name}`:`共 ${cards.length} 条${name}`;
+    if(status.textContent!==message)status.textContent=message;
+  }
   function renderLibrary(type) {
     const customer=type==='customers', list=db[type], name=customer?'客户':'产品';
     const button=`<button class="button primary" data-library-action="new" data-type="${type}">＋ 添加${name}</button>`;
-    $(`#view-${type}`).innerHTML=heading(`${name}资料`,customer?'常用客户保存一次，下一次开单直接选择。':'把常用产品整理好，报价开单更快一步。',button)+(list.length?`<input class="library-search" data-search="${type}" placeholder="搜索${customer?'公司名称、联系人':'产品名称、型号'}…" aria-label="搜索${name}"><div class="library-grid">${list.map(item=>`<article class="library-card" data-search-text="${esc((customer?[item.name,item.contact]:[item.description,item.model]).join(' ').toLowerCase())}"><span class="card-badge" aria-hidden="true">${customer?ICONS.customers:ICONS.products}</span><h2>${esc(customer?item.name:item.description)}</h2><p>${esc(customer?(item.contact||'未填写联系人'):(item.model||'未填写型号'))}</p><p>${esc(customer?(item.email||item.address||''):(item.specification||''))}</p>${customer?'':`<div class="card-meta"><span>参考单价 · 不自动换汇</span><strong>${esc(item.unitPrice)} / ${esc(item.unit)}</strong></div>`}<div class="card-actions"><button class="text-button" data-library-action="use" data-type="${type}" data-id="${esc(item.id)}">用于当前 PI ↗</button><button class="text-button" data-library-action="edit" data-type="${type}" data-id="${esc(item.id)}">编辑</button><button class="text-button delete-button" data-library-action="delete" data-type="${type}" data-id="${esc(item.id)}">删除</button></div></article>`).join('')}</div><p class="small-help" data-no-results hidden>没有找到匹配的资料。</p>`:emptyState(`还没有保存${name}`,customer?'在制作 PI 时保存买方资料，也可以在这里添加。':'保存产品名称、型号、规格和参考单价。',button));
+    $(`#view-${type}`).innerHTML=heading(`${name}资料`,customer?'常用客户保存一次，下一次开单直接选择。':'把常用产品整理好，报价开单更快一步。',button)+(list.length?librarySearch(type,name,`搜索${customer?'公司名称、联系人':'产品名称、型号'}…`)+`<div class="library-grid">${list.map(item=>`<article class="library-card" data-search-text="${esc((customer?[item.name,item.contact]:[item.description,item.model]).join(' ').toLowerCase())}"><span class="card-badge" aria-hidden="true">${customer?ICONS.customers:ICONS.products}</span><h2>${esc(customer?item.name:item.description)}</h2><p>${esc(customer?(item.contact||'未填写联系人'):(item.model||'未填写型号'))}</p><p>${esc(customer?(item.email||item.address||''):(item.specification||''))}</p>${customer?'':`<div class="card-meta"><span>参考单价 · 不自动换汇</span><strong>${esc(item.unitPrice)} / ${esc(item.unit)}</strong></div>`}<div class="card-actions"><button class="text-button" data-library-action="use" data-type="${type}" data-id="${esc(item.id)}">用于当前 PI ↗</button><button class="text-button" data-library-action="edit" data-type="${type}" data-id="${esc(item.id)}">编辑</button><button class="text-button delete-button" data-library-action="delete" data-type="${type}" data-id="${esc(item.id)}">删除</button></div></article>`).join('')}</div>`+libraryNoResults(type,name):emptyState(`还没有保存${name}`,customer?'在制作 PI 时保存买方资料，也可以在这里添加。':'保存产品名称、型号、规格和参考单价。',button));
+    filterLibrary(type);
   }
   function renderHistory() {
-    $('#view-history').innerHTML=heading('历史单据','保存成交记录，复制一份即可开始下一笔订单。')+(db.history.length?`<input class="library-search" data-search="history" placeholder="搜索 PI 编号或客户…" aria-label="搜索历史单据"><div class="library-grid">${db.history.map(record=>{const inv=record.invoice,result=U.calculate(inv);return `<article class="library-card" data-search-text="${esc((inv.meta.number+' '+inv.buyer.name).toLowerCase())}"><span class="card-badge">PI</span><h2>${esc(inv.meta.number)}</h2><p>${esc(inv.buyer.name||'未命名客户')}</p><p>${esc(inv.meta.date)} · ${inv.items.length} 项产品</p><div class="card-meta"><span>${esc(inv.meta.incoterm||'形式发票')}</span><strong>${esc(U.formatMoney(result.total,inv.meta.currency))}</strong></div><div class="card-actions"><button class="text-button" data-history-action="open" data-id="${esc(record.id)}">打开 ↗</button><button class="text-button" data-history-action="copy" data-id="${esc(record.id)}">复制新单</button><button class="text-button delete-button" data-history-action="delete" data-id="${esc(record.id)}">删除</button></div></article>`;}).join('')}</div><p class="small-help" data-no-results hidden>没有找到匹配的单据。</p>`:emptyState('第一份 PI，等你完成','在制作页面点击「保存到历史」，单据就会出现在这里。','<button class="button primary" data-view="editor">去制作 PI →</button>'));
+    $('#view-history').innerHTML=heading('历史单据','保存成交记录，复制一份即可开始下一笔订单。')+(db.history.length?librarySearch('history','历史单据','搜索 PI 编号或客户…')+`<div class="library-grid">${db.history.map(record=>{const inv=record.invoice,result=U.calculate(inv);return `<article class="library-card" data-search-text="${esc((inv.meta.number+' '+inv.buyer.name).toLowerCase())}"><span class="card-badge">PI</span><h2>${esc(inv.meta.number)}</h2><p>${esc(inv.buyer.name||'未命名客户')}</p><p>${esc(inv.meta.date)} · ${inv.items.length} 项产品</p><div class="card-meta"><span>${esc(inv.meta.incoterm||'形式发票')}</span><strong>${esc(U.formatMoney(result.total,inv.meta.currency))}</strong></div><div class="card-actions"><button class="text-button" data-history-action="open" data-id="${esc(record.id)}">打开 ↗</button><button class="text-button" data-history-action="copy" data-id="${esc(record.id)}">复制新单</button><button class="text-button delete-button" data-history-action="delete" data-id="${esc(record.id)}">删除</button></div></article>`;}).join('')}</div>`+libraryNoResults('history','单据'):emptyState('第一份 PI，等你完成','在制作页面点击「保存到历史」，单据就会出现在这里。','<button class="button primary" data-view="editor">去制作 PI →</button>'));
+    filterLibrary('history');
   }
   function renderSettings() {
     const s=db.companyProfiles.find(x=>x.id===settingsProfileId)||profileFor(state.meta.market,state.meta.profileId);
@@ -385,7 +412,7 @@
     for(let parent=node.parentElement;parent;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;
     node.focus({preventScroll:true});node.scrollIntoView({block:'center',behavior:'auto'});
   }
-  function validate() {
+  function validate({interactive=true}={}) {
     const root=$('#view-editor');$$('[aria-invalid]',root).forEach(clearFieldError);
     const errors=[...U.calculate(state).errors];
     if (!state.meta.number.trim()) errors.unshift('请填写单据编号');
@@ -402,8 +429,10 @@
       return field==='item'?$('[data-item-field="description"]',root):field?$(`[data-field="${field}"]`,root):null;
     };
     const unique=[...new Set(errors)],targets=unique.map(target);unique.forEach((message,i)=>fieldError(targets[i],message));
-    const node=$('#validation');node.hidden=!unique.length;node.innerHTML=unique.length?`<strong>还有 ${unique.length} 项需要确认</strong><ul>${unique.map((message,i)=>`<li>${targets[i]?`<button type="button" class="inline-button" data-focus-error="${esc(targets[i].id)}">${esc(message)}</button>`:esc(message)}</li>`).join('')}</ul>`:'';
-    if(unique.length){focusInvoiceField(targets.find(Boolean));toast('请完成标出的资料后再保存',true);return false;}return true;
+    const node=$('#validation'),summary=unique.length?`<strong>还有 ${unique.length} 项需要确认</strong><ul>${unique.map((message,i)=>`<li>${targets[i]?`<button type="button" class="inline-button" data-focus-error="${esc(targets[i].id)}">${esc(message)}</button>`:esc(message)}</li>`).join('')}</ul>`:'';
+    node.hidden=!unique.length;if(node.innerHTML!==summary)node.innerHTML=summary;
+    validationActive=unique.length>0;
+    if(unique.length){if(interactive){focusInvoiceField(targets.find(Boolean));toast('请完成标出的资料后再保存',true);}return false;}return true;
   }
   function saveHistory() {
     if(!validate())return;
@@ -416,7 +445,8 @@
     editContext={type,id:item.id||null};$('#dialog-title').textContent=`${item.id?'编辑':'添加'}${type==='customers'?'客户':'产品'}`;
     $('#dialog-fields').innerHTML=formFields(type==='customers'?sellerFields:productFields,'dialog.',item);
     if(type==='products'&&!item.id){$('#dialog-fields [data-field="dialog.unit"]').value='PCS';$('#dialog-fields [data-field="dialog.unitPrice"]').value='0';}
-    prepareFormControls($('#dialog-fields'));$('#edit-dialog').showModal();setTimeout(()=>$('#dialog-fields input')?.focus(),0);
+    prepareFormControls($('#dialog-fields'));const title=$('#dialog-title');title.tabIndex=-1;title.toggleAttribute('autofocus',isMobile());
+    $('#edit-dialog').showModal();if(isMobile())title.focus({preventScroll:true});else $('#dialog-fields input')?.focus({preventScroll:true});
   }
   function saveLibraryItem(type,raw) {
     const item=type==='customers'?cleanParty(raw):cleanProduct(raw);
@@ -434,6 +464,13 @@
     if(state.items.length>=200){toast('每份 PI 最多 200 项产品',true);return;}
     if(state.items.length===1&&!state.items[0].description&&!state.items[0].model)state.items[0]=clone(item);else state.items.push(clone(item));
     renderItems();update();
+    const index=state.items.length-1;
+    requestAnimationFrame(()=>{
+      if(currentView!=='editor'||panel!=='items')return;
+      const card=$(`[data-item="${index}"]`);if(!card)return;
+      const target=isMobile()?$('.item-index',card):$('[data-item-field="description"]',card);
+      target?.focus({preventScroll:true});card?.scrollIntoView({block:'start',behavior:'auto'});
+    });
   }
   function saveSettings(apply=false,quiet=false) {
     const form=$('#settings-form'),profile=db.companyProfiles.find(x=>x.id===settingsProfileId);
@@ -477,9 +514,28 @@
     const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename.replace(/[\\/:*?"<>|\u0000-\u001f]/g,'_');a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);
   }
   function togglePreview() {
-    previewExpanded=!previewExpanded;$('.preview-panel').classList.toggle('preview-expanded',previewExpanded);$('#expand-preview').textContent=previewExpanded?'× 关闭放大':'⤢ 放大';$('#expand-preview').setAttribute('aria-expanded',String(previewExpanded));
-    if(previewExpanded){const backdrop=document.createElement('div');backdrop.className='preview-backdrop no-print';backdrop.addEventListener('click',togglePreview);document.body.append(backdrop);$('.preview-panel').setAttribute('role','dialog');$('.preview-panel').setAttribute('aria-modal','true');document.body.style.overflow='hidden';$('#expand-preview').focus();}else{$('.preview-backdrop')?.remove();$('.preview-panel').removeAttribute('role');$('.preview-panel').removeAttribute('aria-modal');document.body.style.overflow='';$('#expand-preview').focus();}
+    const preview=$('.preview-panel'),trigger=$('#expand-preview');
+    previewExpanded=!previewExpanded;preview.classList.toggle('preview-expanded',previewExpanded);trigger.setAttribute('aria-expanded',String(previewExpanded));
+    if(previewExpanded){
+      previewTriggerMarkup=trigger.innerHTML;trigger.textContent='关闭放大';
+      previewReturnFocus=document.activeElement;previewOverflow=document.body.style.overflow;previewInertRecords=[];
+      const backdrop=document.createElement('div');backdrop.className='preview-backdrop no-print';backdrop.addEventListener('click',togglePreview);document.body.append(backdrop);
+      for(let child=preview,parent=child.parentElement;parent;child=parent,parent=parent.parentElement){
+        [...parent.children].filter(node=>node!==child&&node!==backdrop&&!['SCRIPT','STYLE','LINK'].includes(node.tagName)).forEach(node=>{previewInertRecords.push({node,inert:node.inert});node.inert=true;});
+        if(parent===document.body)break;
+      }
+      preview.setAttribute('role','dialog');preview.setAttribute('aria-modal','true');document.body.style.overflow='hidden';trigger.focus({preventScroll:true});
+    }else{
+      trigger.innerHTML=previewTriggerMarkup;
+      $('.preview-backdrop')?.remove();preview.removeAttribute('role');preview.removeAttribute('aria-modal');
+      previewInertRecords.forEach(({node,inert})=>node.inert=inert);previewInertRecords=[];document.body.style.overflow=previewOverflow;
+      const target=previewReturnFocus?.isConnected&&!previewReturnFocus.inert?previewReturnFocus:trigger;target.focus({preventScroll:true});previewReturnFocus=null;
+    }
     requestAnimationFrame(resizePreview);
+  }
+  function previewFocusable() {
+    const preview=$('.preview-panel');
+    return [preview,...$$('button,a[href],input,select,textarea,[tabindex]',preview)].filter(node=>!node.disabled&&!node.closest('[inert]')&&node.tabIndex>=0&&node.getClientRects().length);
   }
   function printInvoice() {if(!validate())return;persist();const old=document.title;document.title=state.meta.number+' - Proforma Invoice';window.print();setTimeout(()=>document.title=old,1000);}
   function downloadFile(file) {
@@ -494,9 +550,9 @@
     if(!validate())return;
     persist();renderInvoice();
     const number=state.meta.number||'PI',filename=number.replace(/[\\/:*?"<>|\u0000-\u001f]/g,'_')+'.pdf';
-    const buttons=[$('#save-local'),$('[data-mobile-action="local"]')];
-    pdfBusy=true;buttons.forEach(button=>{button.disabled=true;button.setAttribute('aria-busy','true');});
-    if(panel==='preview')$('#mobile-next').disabled=true;
+    const buttons=[$('#save-local'),$('[data-mobile-action="local"]'),$('#finish-invoice')].filter(Boolean).map(button=>({button,label:$('strong',button)||button,html:($('strong',button)||button).innerHTML,disabled:button.disabled,busy:button.getAttribute('aria-busy')}));
+    pdfBusy=true;buttons.forEach(({button,label})=>{button.disabled=true;button.setAttribute('aria-busy','true');label.textContent='正在生成 PDF…';});
+    updateMobileDock();toast('正在生成 PDF，请稍候…');
     try {
       const blob=await window.PIPdf.create($('#invoice'),{title:number+' - Proforma Invoice',onProgress:(page,total)=>toast(`正在生成 PDF · ${page} / ${total} 页…`)});
       const file=new File([blob],filename,{type:'application/pdf'});
@@ -509,19 +565,20 @@
       } else toast('PDF 已下载，请在浏览器下载记录中查看');
     } catch(err) { toast('PDF 保存未完成，请重试或使用「打印」保存',true); }
     finally {
-      pdfBusy=false;buttons.forEach(button=>{button.disabled=false;button.removeAttribute('aria-busy');});
-      $('#mobile-next').disabled=false;
+      pdfBusy=false;buttons.forEach(({button,label,html,disabled,busy})=>{button.disabled=disabled;if(busy===null)button.removeAttribute('aria-busy');else button.setAttribute('aria-busy',busy);label.innerHTML=html;});
+      updateMobileDock();
     }
   }
   function updateMobileDock(){
-    const buttons={order:'下一步：产品',items:'下一步：条款',terms:state.meta.market==='domestic'?'预览合同':'查看 PI',preview:'保存到本地'};
-    $('#mobile-next').textContent=buttons[panel]||buttons.order;
+    const buttons={order:'下一步：产品',items:'下一步：条款',terms:state.meta.market==='domestic'?'预览合同':'查看 PI',preview:'保存 PDF'},busy=pdfBusy&&panel==='preview';
+    $('#mobile-next').textContent=busy?'正在生成 PDF…':buttons[panel]||buttons.order;
+    $('#mobile-next').disabled=busy;if(busy)$('#mobile-next').setAttribute('aria-busy','true');else $('#mobile-next').removeAttribute('aria-busy');
     $('#mobile-preview-btn').textContent=panel==='preview'?'返回编辑':'预览';
+    const step=$('#mobile-step-label');if(step)step.textContent=`第 ${Math.max(0,['order','items','terms','preview'].indexOf(panel))+1} / 4 步`;
   }
   function mobileNext(){
     if(panel==='preview'){saveLocalInvoice();return;}
-    setPanel(({order:'items',items:'terms',terms:'preview'})[panel]);
-    window.scrollTo({top:0,behavior:'instant'});
+    navigatePanel(({order:'items',items:'terms',terms:'preview'})[panel],{top:true});
   }
   function openMobileSheet(mode='all'){
     const sheet=$('#mobile-sheet');sheet.dataset.mode=mode;$('#mobile-sheet-title').textContent=mode==='export'?'这份 PI，准备发送':'单据与资料';
@@ -537,8 +594,9 @@
     }catch(err){if(err.name!=='AbortError'){try{U.downloadXlsx(state);toast('系统分享不可用，Excel 已下载');}catch(downloadError){toast('分享未完成，请使用下载 Excel 或打印 PDF',true);}}}
   }
   function syncMobileContext(){
-    const mobile=isMobile();if(!mobile&&panel==='preview')setPanel('order');
+    const mobile=isMobile();if(!mobile&&panel==='preview')setPanel(lastEditorPanel);
     $('#buyer-details').open=!mobile;$('#meta-extra-details').open=!mobile;
+    const issuer=$('#issuer-details');if(issuer)issuer.open=!mobile;
     if(!mobile)document.body.classList.remove('keyboard-open');
     resizePreview();
   }
@@ -555,7 +613,7 @@
   document.addEventListener('input',event=>{
     const node=event.target;clearFieldError(node);
     if(node.closest('#settings-form')){settingsDirty=true;return;}
-    if(node.matches('[data-search]')){let count=0;const query=node.value.trim().toLowerCase();$$('[data-search-text]',node.parentElement).forEach(card=>{const match=card.dataset.searchText.includes(query);card.hidden=!match;if(match)count++;});$('[data-no-results]',node.parentElement).hidden=count>0;return;}
+    if(node.matches('[data-search]')){filterLibrary(node.dataset.search);return;}
     if(!node.closest('#view-editor'))return;
     if(node.dataset.field){setPath(state,node.dataset.field,node.value);if(node.dataset.field==='seller.name'&&fixedSellerFields(state)){const profile=db.companyProfiles.find(p=>p.market===state.meta.market&&p.seller.name===state.seller.name);if(profile)state.meta.profileId=profile.id;syncAll();}if(node.dataset.field==='meta.currency')renderItems();update();}
     if(node.dataset.itemField){state.items[Number(node.dataset.index)][node.dataset.itemField]=node.value;update();}
@@ -572,12 +630,14 @@
   });
   document.addEventListener('click',async event=>{
     const node=event.target.closest('button,a[data-view]');if(!node)return;if(node.tagName==='A')event.preventDefault();
+    const tools=node.closest('#document-tools');if(tools){tools.open=false;if(tools.contains(document.activeElement))$('summary',tools).focus({preventScroll:true});}
+    if(node.dataset.clearSearch){const type=node.dataset.clearSearch,input=$(`[data-search="${type}"]`);libraryQueries[type]='';if(input){input.value='';filterLibrary(type);input.focus({preventScroll:true});}return;}
     if(node.dataset.focusError){focusInvoiceField(document.getElementById(node.dataset.focusError));return;}
     if(node.dataset.market){switchMarket(node.dataset.market);return;}
     if(node.dataset.mobileAction){$('#mobile-sheet').close();const action=node.dataset.mobileAction;const route={local:'save-local',print:'print-invoice',excel:'export-excel',save:'save-invoice',new:'new-invoice',demo:'load-demo',backup:'backup-all',restore:'restore-all',import:'import-invoice','invoice-backup':'export-json'};if(action==='share')await shareInvoice();else if(route[action]){if(['local','print','excel','save'].includes(action)&&currentView!=='editor')showView('editor');$(`#${route[action]}`).click();}return;}
     if(node.dataset.view){if(await leaveSettings())showView(node.dataset.view);return;}
     if(node.dataset.panel){setPanel(node.dataset.panel);return;}
-    if(node.dataset.next){setPanel(node.dataset.next);$('.editor-tabs').scrollIntoView({block:'start',behavior:'auto'});return;}
+    if(node.dataset.next){navigatePanel(node.dataset.next);return;}
     if(node.dataset.itemAction){const index=Number(node.dataset.index),action=node.dataset.itemAction;
       if(action==='remove'){const removed=clone(state.items[index]),wasLast=state.items.length===1;if(wasLast)state.items=[emptyItem()];else state.items.splice(index,1);renderItems();update();toast('产品已删除',false,()=>{if(wasLast&&state.items.length===1&&!state.items[0].description&&!state.items[0].model)state.items[0]=removed;else state.items.splice(Math.min(index,state.items.length),0,removed);renderItems();update();setPanel('items');$(`[data-item-field="description"][data-index="${Math.min(index,state.items.length-1)}"]`)?.focus();toast('产品已恢复');});}
       if(action==='duplicate')addItem(state.items[index]);
@@ -604,7 +664,7 @@
       'upload-seal':()=>uploadProfileImage('seal'),
       'remove-seal':()=>{$('#profile-seal-select').value='none';$('#profile-seal-select').dispatchEvent(new Event('change',{bubbles:true}));},
       'mobile-more':()=>openMobileSheet(),'close-mobile-sheet':()=>$('#mobile-sheet').close(),'mobile-next':mobileNext,
-      'mobile-preview-btn':()=>{setPanel(panel==='preview'?'order':'preview');window.scrollTo({top:0,behavior:'instant'});},
+      'mobile-preview-btn':()=>navigatePanel(panel==='preview'?lastEditorPanel:'preview',{top:true}),
       'preview-zoom':()=>{previewZoomed=!previewZoomed;$('.preview-panel').classList.toggle('preview-zoomed',previewZoomed);$('#preview-zoom').textContent=previewZoomed?'适合屏幕':'100% 阅读';$('#preview-zoom').setAttribute('aria-pressed',String(previewZoomed));$('#preview-hint').textContent=previewZoomed?'当前为原尺寸，左右滑动查看完整单据。':'点「100% 阅读」查看细节，左右滑动单据。';resizePreview();},
       'backup-all':()=>{if(loadWarning&&originalStorage){try{downloadJSON({app:'pi-studio',version:1,type:'backup',data:JSON.parse(originalStorage)},`PI-Studio-recovery-${today()}.json`);}catch(err){const a=document.createElement('a'),url=URL.createObjectURL(new Blob([originalStorage],{type:'application/json'}));a.href=url;a.download=`PI-Studio-recovery-${today()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);}toast('原始浏览器资料已导出，请保留以便恢复');return;}downloadJSON({app:'pi-studio',version:1,type:'backup',data:{...db,draft:state}},`PI-Studio-backup-${today()}.json`);toast('全部资料备份已导出');},
       'restore-all':()=>{importMode='backup';$('#json-file').value='';$('#json-file').click();},
@@ -644,7 +704,19 @@
   });
   $('#mobile-sheet').addEventListener('click',event=>{if(event.target!==event.currentTarget)return;const box=event.currentTarget.getBoundingClientRect();if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)event.currentTarget.close();});
   $('#confirm-dialog').addEventListener('cancel',event=>{event.preventDefault();finishConfirm(false);});
-  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&previewExpanded)togglePreview();if(event.key==='Tab'&&previewExpanded){const buttons=$$('button',$('.preview-toolbar')).filter(x=>x.getClientRects().length);const first=buttons[0],last=buttons.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}if(event.target.matches('.editor-tab')&&['ArrowLeft','ArrowRight','Home','End'].includes(event.key)){event.preventDefault();const list=isMobile()?['order','items','terms','preview']:['order','items','terms'],index=list.indexOf(panel),next=event.key==='Home'?0:event.key==='End'?list.length-1:(index+(event.key==='ArrowRight'?1:list.length-1))%list.length;setPanel(list[next]);$(`#tab-${list[next]}`).focus();}});
+  document.addEventListener('keydown',event=>{
+    const tools=$('#document-tools');if(event.key==='Escape'&&tools?.open){event.preventDefault();tools.open=false;$('summary',tools).focus({preventScroll:true});return;}
+    if(event.key==='Escape'&&previewExpanded){event.preventDefault();togglePreview();return;}
+    if(event.key==='Tab'&&previewExpanded){
+      const controls=previewFocusable(),first=controls[0],last=controls.at(-1);if(!first){event.preventDefault();return;}
+      if(!$('.preview-panel').contains(document.activeElement)){event.preventDefault();first.focus();}
+      else if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+      else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+    }
+    if(event.target.matches('.editor-tab')&&['ArrowLeft','ArrowRight','Home','End'].includes(event.key)){event.preventDefault();const list=isMobile()?['order','items','terms','preview']:['order','items','terms'],index=list.indexOf(panel),next=event.key==='Home'?0:event.key==='End'?list.length-1:(index+(event.key==='ArrowRight'?1:list.length-1))%list.length;setPanel(list[next]);$(`#tab-${list[next]}`).focus();}
+  });
+  document.addEventListener('pointerdown',event=>{const tools=$('#document-tools');if(tools?.open&&!tools.contains(event.target))tools.open=false;});
+  $('#document-tools')?.addEventListener('focusout',()=>setTimeout(()=>{const tools=$('#document-tools');if(tools?.open&&!tools.contains(document.activeElement))tools.open=false;},0));
   window.addEventListener('resize',resizePreview);
   mobileQuery.addEventListener?.('change',syncMobileContext);
   window.visualViewport?.addEventListener('resize',syncKeyboard);
